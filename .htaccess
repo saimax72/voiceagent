@@ -1,0 +1,50 @@
+# VoiceAgent SaaS - Apache / LiteSpeed configuration (Hostinger compatible)
+Options -Indexes
+AddDefaultCharset UTF-8
+
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+
+    # Force HTTPS (uncomment after SSL is active on your domain)
+    # RewriteCond %{HTTPS} !=on
+    # RewriteRule ^ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
+
+    # Block direct access to protected directories
+    RewriteRule ^(app|config|database|storage|cron)(/|$) - [F,L]
+
+    # Serve real files and directories directly (assets, widget.js, uploads)
+    RewriteCond %{REQUEST_FILENAME} -f [OR]
+    RewriteCond %{REQUEST_FILENAME} -d
+    RewriteRule ^ - [L]
+
+    # Everything else goes through the front controller
+    RewriteRule ^ index.php [L]
+</IfModule>
+
+<IfModule mod_headers.c>
+    Header set X-Content-Type-Options "nosniff"
+    Header set Referrer-Policy "strict-origin-when-cross-origin"
+    # Long cache for static assets (they are versioned by query string)
+    <FilesMatch "\.(css|js|svg|png|jpg|jpeg|gif|webp|woff2?)$">
+        Header set Cache-Control "public, max-age=604800"
+    </FilesMatch>
+    <FilesMatch "^widget\.js$">
+        Header set Cache-Control "public, max-age=3600"
+        Header set Access-Control-Allow-Origin "*"
+    </FilesMatch>
+</IfModule>
+
+<IfModule mod_deflate.c>
+    AddOutputFilterByType DEFLATE text/html text/css text/javascript application/javascript application/json image/svg+xml
+</IfModule>
+
+# Deny access to dotfiles and sensitive files
+<FilesMatch "^(\.env|\.htaccess|\.user\.ini|composer\.(json|lock)|README\.md)$">
+    <IfModule mod_authz_core.c>
+        Require all denied
+    </IfModule>
+    <IfModule !mod_authz_core.c>
+        Order allow,deny
+        Deny from all
+    </IfModule>
+</FilesMatch>
