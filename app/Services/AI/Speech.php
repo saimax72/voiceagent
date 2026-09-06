@@ -42,6 +42,13 @@ final class Speech
         'pFZP5JQG7iQjIQuC4Bku' => 'Lily - warm, British (female)',
     ];
 
+    public const ELEVENLABS_MODELS = [
+        'eleven_flash_v2_5' => 'Fast (Flash v2.5) - lowest latency',
+        'eleven_turbo_v2_5' => 'Balanced (Turbo v2.5)',
+        'eleven_multilingual_v2' => 'Quality (Multilingual v2)',
+        'eleven_v3' => 'Expressive (v3) - emotional, natural intonation',
+    ];
+
     public static function hasOpenAI(): bool
     {
         return (string) Settings::get('openai_api_key', '') !== '';
@@ -142,7 +149,10 @@ final class Speech
     /**
      * Synthesize speech. Returns ['audio' => binary, 'mime' => 'audio/mpeg', 'cached' => bool].
      */
-    public static function synthesize(string $text, string $provider, string $voice, float $speed = 1.0): array
+    /**
+     * Synthesize speech. $settings: elevenlabs_model, stability, similarity, style, openai_instructions.
+     */
+    public static function synthesize(string $text, string $provider, string $voice, float $speed = 1.0, array $settings = []): array
     {
         $text = trim(preg_replace('/\s+/', ' ', $text) ?? $text);
         $text = mb_substr($text, 0, 4000);
@@ -154,17 +164,18 @@ final class Speech
         if (!is_dir($cacheDir)) {
             @mkdir($cacheDir, 0755, true);
         }
-        $cacheFile = $cacheDir . '/' . hash('sha256', $provider . '|' . $voice . '|' . $speed . '|' . $text) . '.mp3';
+        $styleKey = json_encode(array_intersect_key($settings, array_flip(['elevenlabs_model', 'stability', 'similarity', 'style', 'openai_instructions'])));
+        $cacheFile = $cacheDir . '/' . hash('sha256', $provider . '|' . $voice . '|' . $speed . '|' . $styleKey . '|' . $text) . '.mp3';
         if (is_file($cacheFile) && filesize($cacheFile) > 0) {
             @touch($cacheFile);
             return ['audio' => (string) file_get_contents($cacheFile), 'mime' => 'audio/mpeg', 'cached' => true];
         }
-        $audio = $provider === 'elevenlabs' ? self::elevenLabs($text, $voice, $speed) : self::openAI($text, $voice, $speed);
+        $audio = $provider === 'elevenlabs' ? self::elevenLabs($text, $voice, $speed, $settings) : self::openAI($text, $voice, $speed, $settings);
         @file_put_contents($cacheFile, $audio);
         return ['audio' => $audio, 'mime' => 'audio/mpeg', 'cached' => false];
     }
 
-    private static function openAI(string $text, string $voice, float $speed): string
+    private static function openAI(string $text, string $voice, float $speed, array $settings = []): string
     {
         $key = (string) Settings::get('openai_api_key', '');
         if ($key === '') {
@@ -176,7 +187,8 @@ final class Speech
         $model = (string) Settings::get('openai_tts_model', 'gpt-4o-mini-tts');
         $body = ['model' => $model, 'input' => $text, 'voice' => $voice, 'response_format' => 'mp3', 'speed' => $speed];
         if (str_contains($model, 'gpt-4o')) {
-            $body['instructions'] = 'Speak naturally and clearly, like a friendly customer support assistant.';
+            $instructions = trim((string) ($settings['openai_instructions'] ?? ''));
+            $body['instructions'] = $instructions !== '' ? mb_substr($instructions, 0, 400) : 'Speak naturally and clearly, like a friendly customer support assistant.';
         }
         $response = Http::postJson('https://api.openai.com/v1/audio/speech', $body, ['Authorization' => 'Bearer ' . $key], ['timeout' => 60]);
         if (!$response->ok()) {
@@ -187,7 +199,7 @@ final class Speech
         return $response->body;
     }
 
-    private static function elevenLabs(string $text, string $voiceId, float $speed): string
+    private static function elevenLabs(string $text, string $voiceId, float $speed, array $settings = []): string
     {
         $key = (string) Settings::get('elevenlabs_api_key', '');
         if ($key === '') {
@@ -196,10 +208,27 @@ final class Speech
         if (!preg_match('/^[A-Za-z0-9]{10,40}$/', $voiceId)) {
             $voiceId = '21m00Tcm4TlvDq8ikWAM';
         }
+        $model = (string) ($settings['elevenlabs_model'] ?? '');
+        if (!isset(self::ELEVENLABS_MODELS[$model])) {
+            $model = (string) Settings::get('elevenlabs_model', 'eleven_flash_v2_5');
+        }
+        $voiceSettings = [
+            'stability' => max(0.0, min(1.0, (float) ($settings['stability'] ?? 0.5))),
+            'similarity_boost' => max(0.0, min(1.0, (float) ($settings['similarity'] ?? 0.75))),
+            'style' => max(0.0, min(1.0, (float) ($settings['style'] ?? 0.0))),
+            'use_speaker_boost' => true,
+        ];
+        if ($model === 'eleven_v3') {
+            // v3 accepts discrete stability levels: creative (0) / natural (0.5) / robust (1)
+            $voiceSettings['stability'] = $voiceSettings['stability'] < 0.34 ? 0.0 : ($voiceSettings['stability'] > 0.67 ? 1.0 : 0.5);
+            unset($voiceSettings['style']);
+        } else {
+            $voiceSettings['speed'] = max(0.7, min(1.2, $speed));
+        }
         $response = Http::postJson('https://api.elevenlabs.io/v1/text-to-speech/' . $voiceId . '?output_format=mp3_44100_128', [
             'text' => $text,
-            'model_id' => (string) Settings::get('elevenlabs_model', 'eleven_flash_v2_5'),
-            'voice_settings' => ['stability' => 0.5, 'similarity_boost' => 0.75, 'speed' => max(0.7, min(1.2, $speed))],
+            'model_id' => $model,
+            'voice_settings' => $voiceSettings,
         ], ['xi-api-key' => $key, 'Accept' => 'audio/mpeg'], ['timeout' => 60]);
         if (!$response->ok()) {
             Logger::error('ElevenLabs error ' . $response->status . ': ' . mb_substr($response->body ?: $response->error, 0, 300));

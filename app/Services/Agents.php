@@ -3,12 +3,13 @@ declare(strict_types=1);
 
 namespace App\Services;
 
+use App\Core\App;
 use App\Core\DB;
 use App\Core\Str;
 use App\Services\AI\Speech;
 
 /**
- * Agent records, defaults, personas and widget configuration.
+ * Agent records, defaults, personas, prompt variables and widget configuration.
  */
 final class Agents
 {
@@ -27,6 +28,21 @@ final class Agents
     ];
 
     public const FONTS = ['Inter', 'DM Sans', 'Poppins', 'Roboto', 'Open Sans', 'Lato', 'Montserrat', 'Nunito', 'Manrope', 'Source Sans 3', 'System'];
+
+    /** Variables usable as {{name}} in prompts, greetings and instructions. */
+    public const TEMPLATE_VARIABLES = [
+        'agent_name' => 'Name of the agent',
+        'business_name' => 'Business name',
+        'website' => 'Website address',
+        'current_date' => 'Today\'s date in the agent timezone',
+        'current_time' => 'Current time in the agent timezone',
+        'day_of_week' => 'Day of the week',
+        'page_url' => 'Page the visitor is on',
+        'visitor_language' => 'Visitor\'s browser language',
+        'default_language' => 'Agent default language',
+    ];
+
+    public const RESPONSE_LENGTHS = ['short' => 'Short (1-2 sentences)', 'medium' => 'Balanced (2-4 sentences)', 'long' => 'Detailed'];
 
     public static function defaultWidgetConfig(): array
     {
@@ -93,6 +109,8 @@ final class Agents
         return $config;
     }
 
+    // ------------------------------------------------------------------ lookups
+
     public static function find(int $id, int $tenantId): ?array
     {
         return DB::instance()->fetch('SELECT * FROM agents WHERE id = ? AND tenant_id = ? LIMIT 1', [$id, $tenantId]);
@@ -129,6 +147,8 @@ final class Agents
         $name = trim($businessName) !== '' ? trim($businessName) : 'our website';
         return "Hi! I'm the virtual assistant for {$name}. Ask me anything about our products and services, or tap the microphone to talk to me.";
     }
+
+    // ------------------------------------------------------------------ create / update / delete
 
     public static function create(int $tenantId, array $data): array
     {
@@ -208,7 +228,7 @@ final class Agents
     public static function duplicate(array $agent): int
     {
         $copy = $agent;
-        unset($copy['id'], $copy['conversations_count'], $copy['messages_count'], $copy['leads_count'], $copy['last_trained_at']);
+        unset($copy['id'], $copy['conversations_count'], $copy['messages_count'], $copy['leads_count'], $copy['last_trained_at'], $copy['installed_domain'], $copy['installed_at']);
         $copy['public_id'] = Str::publicId();
         $copy['name'] = $agent['name'] . ' (copy)';
         $copy['status'] = 'paused';
@@ -225,6 +245,121 @@ final class Agents
              leads_count = (SELECT COUNT(*) FROM leads WHERE agent_id = ?) WHERE id = ?',
             [$agentId, $agentId, $agentId, $agentId]
         );
+    }
+
+    // ------------------------------------------------------------------ configuration helpers
+
+    public static function tags(array $agent): array
+    {
+        return array_values(array_filter(array_map('trim', explode(',', (string) ($agent['tags'] ?? '')))));
+    }
+
+    public static function timezone(array $agent): string
+    {
+        $tz = (string) ($agent['timezone'] ?? '');
+        return $tz !== '' && in_array($tz, \DateTimeZone::listIdentifiers(), true) ? $tz : (string) App::config('app.timezone', 'UTC');
+    }
+
+    /** Additional languages (ISO codes) the agent may reply in besides the default. */
+    public static function additionalLanguages(array $agent): array
+    {
+        $codes = array_values(array_filter(array_map('trim', explode(',', (string) ($agent['additional_languages'] ?? '')))));
+        $known = App::languages();
+        return array_values(array_filter($codes, static fn($c) => $c !== 'auto' && isset($known[$c]) && $c !== ($agent['language'] ?? '')));
+    }
+
+    /** Per-language overrides: ['fr' => ['greeting' => '...', 'voice' => 'coral'], ...] */
+    public static function languageSettings(array $agent): array
+    {
+        $settings = json_field($agent['language_settings'] ?? null);
+        $out = [];
+        foreach ($settings as $code => $cfg) {
+            if (is_array($cfg) && preg_match('/^[a-z]{2}$/', (string) $code)) {
+                $out[$code] = ['greeting' => trim((string) ($cfg['greeting'] ?? '')), 'voice' => trim((string) ($cfg['voice'] ?? ''))];
+            }
+        }
+        return $out;
+    }
+
+    public static function voiceSettings(array $agent): array
+    {
+        $defaults = ['elevenlabs_model' => '', 'stability' => 0.5, 'similarity' => 0.75, 'style' => 0.0, 'openai_instructions' => ''];
+        $stored = json_field($agent['voice_settings'] ?? null);
+        $out = array_merge($defaults, array_intersect_key($stored, $defaults));
+        foreach (['stability', 'similarity', 'style'] as $k) {
+            $out[$k] = max(0.0, min(1.0, (float) $out[$k]));
+        }
+        return $out;
+    }
+
+    /** Values for {{variables}} in prompts and messages. */
+    public static function templateVariables(array $agent, array $context = []): array
+    {
+        try {
+            $now = new \DateTime('now', new \DateTimeZone(self::timezone($agent)));
+        } catch (\Throwable) {
+            $now = new \DateTime('now', new \DateTimeZone('UTC'));
+        }
+        $default = (string) ($agent['language'] ?? 'auto');
+        return [
+            'agent_name' => (string) ($agent['name'] ?? 'Assistant'),
+            'business_name' => trim((string) ($agent['business_name'] ?? '')) ?: (trim((string) ($agent['website_url'] ?? '')) ? Str::host((string) $agent['website_url']) : 'our business'),
+            'website' => (string) ($agent['website_url'] ?? ''),
+            'current_date' => $now->format('l, F j, Y'),
+            'current_time' => $now->format('H:i'),
+            'day_of_week' => $now->format('l'),
+            'page_url' => (string) ($context['page_url'] ?? ''),
+            'visitor_language' => language_name((string) ($context['visitor_language'] ?? ($default !== 'auto' ? $default : 'en'))),
+            'default_language' => $default === 'auto' ? 'the visitor\'s language' : language_name($default),
+        ];
+    }
+
+    /** Replace {{ variable }} placeholders. Unknown variables are left untouched. */
+    public static function interpolate(string $text, array $vars): string
+    {
+        return preg_replace_callback('/\{\{\s*([a-zA-Z_][a-zA-Z0-9_]*)\s*\}\}/', static function (array $m) use ($vars): string {
+            $key = strtolower($m[1]);
+            return array_key_exists($key, $vars) ? (string) $vars[$key] : $m[0];
+        }, $text) ?? $text;
+    }
+
+    /** Greeting for a visitor language (falls back to the default greeting), with variables applied. */
+    public static function greetingFor(array $agent, ?string $lang, array $context = []): string
+    {
+        $greeting = trim((string) ($agent['greeting_message'] ?? ''));
+        $lang = $lang ? strtolower(substr($lang, 0, 2)) : '';
+        if ($lang !== '' && $lang !== ($agent['language'] ?? '')) {
+            $override = self::languageSettings($agent)[$lang]['greeting'] ?? '';
+            if ($override !== '' && in_array($lang, self::additionalLanguages($agent), true)) {
+                $greeting = $override;
+            }
+        }
+        return self::interpolate($greeting, self::templateVariables($agent, array_merge($context, ['visitor_language' => $lang ?: null])));
+    }
+
+    /** All greetings (default + per-language), interpolated. Keyed 'default' and by language code. */
+    public static function greetings(array $agent, array $context = []): array
+    {
+        $out = ['default' => self::greetingFor($agent, null, $context)];
+        foreach (self::additionalLanguages($agent) as $code) {
+            $override = self::languageSettings($agent)[$code]['greeting'] ?? '';
+            if ($override !== '') {
+                $out[$code] = self::greetingFor($agent, $code, $context);
+            }
+        }
+        return $out;
+    }
+
+    /** Voice id to use for a given visitor language (per-language override or the primary voice). */
+    public static function voiceFor(array $agent, ?string $lang): string
+    {
+        $primary = (string) ($agent['tts_voice'] ?? 'alloy');
+        $lang = $lang ? strtolower(substr($lang, 0, 2)) : '';
+        if ($lang === '' || !in_array($lang, self::additionalLanguages($agent), true)) {
+            return $primary;
+        }
+        $override = self::languageSettings($agent)[$lang]['voice'] ?? '';
+        return $override !== '' ? $override : $primary;
     }
 
     /** Allowed domains as a normalised list of hosts. */
@@ -274,7 +409,7 @@ final class Agents
     }
 
     /** Configuration exposed to the public widget. */
-    public static function publicConfig(array $agent, array $tenant): array
+    public static function publicConfig(array $agent, array $tenant, array $context = []): array
     {
         $widget = self::widgetConfig($agent);
         $plan = Plans::forTenant($tenant);
@@ -291,15 +426,23 @@ final class Agents
                 $widget[$k] = $base . '/' . ltrim((string) $widget[$k], '/');
             }
         }
+        $vars = self::templateVariables($agent, $context);
+        foreach (['header_title', 'header_subtitle', 'greeting_text', 'welcome_message'] as $k) {
+            $widget[$k] = self::interpolate((string) $widget[$k], $vars);
+        }
+        $greetings = self::greetings($agent, $context);
         return [
             'agent' => [
                 'public_id' => $agent['public_id'],
                 'name' => $agent['name'],
                 'status' => $agent['status'],
                 'language' => $agent['language'],
+                'languages' => self::additionalLanguages($agent),
                 'voice_enabled' => (bool) $agent['voice_enabled'],
                 'auto_speak' => (bool) $agent['auto_speak'],
-                'greeting' => (string) $agent['greeting_message'],
+                'interruptible' => (bool) ($agent['interruptible'] ?? 1),
+                'greeting' => $greetings['default'],
+                'greetings' => $greetings,
                 'tts' => ['mode' => $ttsMode, 'voice' => $agent['tts_voice'], 'speed' => (float) $agent['tts_speed']],
                 'stt' => ['mode' => $sttMode],
                 'lead_capture' => (bool) $agent['lead_capture_enabled'],

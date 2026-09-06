@@ -404,7 +404,7 @@
       }).catch(function () { self.token = null; store(STORAGE_KEY, null); self.starting = null; return self.ensureConversation(); });
       return this.starting;
     }
-    var body = { agent: AGENT_ID, visitor_id: this.visitorId(), page_url: location.href, referrer: document.referrer, test: MODE === 'test' };
+    var body = { agent: AGENT_ID, visitor_id: this.visitorId(), page_url: location.href, referrer: document.referrer, language: this.visitorLang(), test: MODE === 'test' };
     this.starting = this.api('/conversations', body).then(function (data) {
       self.token = data.token;
       store(STORAGE_KEY, { token: data.token, at: Date.now() });
@@ -455,7 +455,7 @@
     var w = this.w;
     var chips = (w.suggested_questions || []).filter(Boolean).slice(0, 6);
     var html = '<div class="va-welcome"><div class="va-big">' + this.avatarHtml() + '</div><h3>' + esc(w.greeting_text || 'Hi there!') + '</h3><p>' + esc(w.welcome_message || '') + '</p></div>';
-    if (this.agent.greeting) { html += '<div class="va-msg bot"><div><div class="va-bubble">' + md(this.agent.greeting) + '</div></div></div>'; }
+    if (this.greeting()) { html += '<div class="va-msg bot"><div><div class="va-bubble">' + md(this.greeting()) + '</div></div></div>'; }
     if (chips.length) {
       html += '<div class="va-toolbar"><span>' + esc(w.ask_me_text || 'Ask me anything') + '</span></div><div class="va-chips">' + chips.map(function (c) { return '<button class="va-chip" type="button">' + esc(c) + '</button>'; }).join('') + '</div>';
     }
@@ -468,7 +468,7 @@
     if (!this.messages.length) { this.renderWelcome(); return; }
     var self = this;
     this.el.body.innerHTML = '';
-    if (this.agent.greeting) { this.el.body.appendChild(this.bubble({ role: 'assistant', content: this.agent.greeting, id: 0 })); }
+    if (this.greeting()) { this.el.body.appendChild(this.bubble({ role: 'assistant', content: this.greeting(), id: 0 })); }
     this.messages.forEach(function (m) { self.el.body.appendChild(self.bubble(m)); });
     this.scroll();
   };
@@ -518,7 +518,7 @@
     this.busy = true;
     this.interrupt();
     return this.ensureConversation().then(function () {
-      if (!self.messages.length) { self.el.body.innerHTML = ''; if (self.agent.greeting) { self.el.body.appendChild(self.bubble({ role: 'assistant', content: self.agent.greeting, id: 0 })); } }
+      if (!self.messages.length) { self.el.body.innerHTML = ''; if (self.greeting()) { self.el.body.appendChild(self.bubble({ role: 'assistant', content: self.greeting(), id: 0 })); } }
       var userMsg = { role: 'user', content: text, modality: modality };
       self.messages.push(userMsg);
       self.el.body.appendChild(self.bubble(userMsg));
@@ -659,9 +659,24 @@
     return !!(window.SpeechRecognition || window.webkitSpeechRecognition);
   };
 
+  /* Language helpers: greeting and speech settings follow the visitor's language when allowed. */
+  Widget.prototype.visitorLang = function () { return ((navigator.language || 'en').slice(0, 2)).toLowerCase(); };
+  Widget.prototype.speechLang = function () {
+    var def = this.agent.language, extra = this.agent.languages || [], nav = navigator.language || 'en-US';
+    if (!def || def === 'auto') { return nav; }
+    return extra.indexOf(nav.slice(0, 2).toLowerCase()) !== -1 ? nav : def;
+  };
+  Widget.prototype.greeting = function () {
+    var g = this.agent.greetings || {};
+    return g[this.visitorLang()] || this.agent.greeting || '';
+  };
+
   Widget.prototype.orbTap = function () {
     if (this.state === 'listening') { this.stopListening(true); return; }
-    if (this.state === 'speaking' || this.state === 'thinking') { this.interrupt(); }
+    if (this.state === 'speaking' || this.state === 'thinking') {
+      if (this.agent.interruptible === false && this.state === 'speaking') { this.setVoiceStatus(this.w.speaking_text || 'Speaking...', 'Please wait until the assistant finishes.'); return; }
+      this.interrupt();
+    }
     this.startListening();
   };
 
@@ -688,8 +703,7 @@
     var self = this;
     var SR = window.SpeechRecognition || window.webkitSpeechRecognition;
     var rec = new SR();
-    var lang = this.agent.language && this.agent.language !== 'auto' ? this.agent.language : (navigator.language || 'en-US');
-    rec.lang = lang; rec.interimResults = true; rec.continuous = false; rec.maxAlternatives = 1;
+    rec.lang = this.speechLang(); rec.interimResults = true; rec.continuous = false; rec.maxAlternatives = 1;
     var finalText = '';
     rec.onstart = function () { self.setState('listening'); self.setVoiceStatus(self.w.listening_text || 'Listening...', 'Speak now, I am listening'); self.playTone(880, .08); self.startLevelMeter(); };
     rec.onresult = function (e) {
@@ -736,7 +750,7 @@
         var fd = new FormData();
         fd.append('agent', AGENT_ID); fd.append('token', self.token); fd.append('duration', String(Math.round(duration)));
         fd.append('audio', blob, 'speech.' + (blob.type.indexOf('mp4') !== -1 ? 'mp4' : (blob.type.indexOf('ogg') !== -1 ? 'ogg' : 'webm')));
-        if (navigator.language) { fd.append('language', navigator.language.slice(0, 2)); }
+        fd.append('language', self.speechLang().slice(0, 2));
         self.api('/stt', fd).then(function (data) {
           var text = (data.text || '').trim();
           if (!text) { self.setState('idle'); self.setVoiceStatus(self.w.mic_text || 'Tap to talk', 'I did not catch that. Tap to try again.'); return; }
@@ -841,7 +855,7 @@
     if (this.ttsPrefetch[text]) { return this.ttsPrefetch[text]; }
     var headers = { 'Content-Type': 'application/json' };
     if (PREVIEW_TOKEN) { headers['X-Preview-Token'] = PREVIEW_TOKEN; }
-    var p = fetch(API + '/tts', { method: 'POST', headers: headers, body: JSON.stringify({ agent: AGENT_ID, token: this.token, text: text }), mode: 'cors' }).then(function (res) {
+    var p = fetch(API + '/tts', { method: 'POST', headers: headers, body: JSON.stringify({ agent: AGENT_ID, token: this.token, text: text, language: this.speechLang().slice(0, 2) }), mode: 'cors' }).then(function (res) {
       if (!res.ok) { throw new Error('tts'); }
       return res.blob();
     }).then(function (blob) { return URL.createObjectURL(blob); }).catch(function () { return null; });
@@ -857,7 +871,7 @@
     if (this.agent.tts.mode === 'browser') {
       if (!window.speechSynthesis) { this.ttsPlaying = false; this.ttsQueue = []; this.afterSpeaking(); return; }
       var u = new SpeechSynthesisUtterance(text);
-      var lang = this.agent.language && this.agent.language !== 'auto' ? this.agent.language : (navigator.language || 'en-US');
+      var lang = this.speechLang();
       u.lang = lang; u.rate = Math.max(0.6, Math.min(1.6, this.agent.tts.speed || 1));
       var voice = this.pickVoice(lang);
       if (voice) { u.voice = voice; }

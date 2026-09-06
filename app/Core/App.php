@@ -117,6 +117,7 @@ final class App
         require APP_PATH . '/routes.php';
 
         try {
+            \App\Services\Migrator::autoRun();
             $response = $router->dispatch($request);
         } catch (HttpException $e) {
             $response = self::errorResponse($e->status, $e->getMessage(), $request);

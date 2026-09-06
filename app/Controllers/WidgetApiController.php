@@ -119,7 +119,7 @@ final class WidgetApiController
         return Response::json([
             'token' => Conversations::token($conversation),
             'conversation_id' => $conversation['public_id'],
-            'greeting' => (string) $agent['greeting_message'],
+            'greeting' => Agents::greetingFor($agent, $request->string('language') ?: null, ['page_url' => $request->string('page_url')]),
         ]);
     }
 
@@ -251,8 +251,9 @@ final class WidgetApiController
         if ($text === '' || mb_strlen($text) > 3000) {
             return Response::json(['error' => 'Invalid text.'], 422);
         }
-        // Only speak text the assistant actually produced in this conversation (or the greeting)
-        $allowed = [(string) $agent['greeting_message']];
+        // Only speak text the assistant actually produced in this conversation (or a greeting)
+        $allowed = array_values(Agents::greetings($agent, ['page_url' => $conversation['page_url'] ?? null]));
+        $allowed[] = (string) $agent['greeting_message'];
         foreach (DB::instance()->fetchAll('SELECT content FROM messages WHERE conversation_id = ? AND role = \'assistant\' ORDER BY id DESC LIMIT 6', [(int) $conversation['id']]) as $row) {
             $allowed[] = (string) $row['content'];
         }
@@ -271,7 +272,8 @@ final class WidgetApiController
             return Response::json(['error' => 'Too many requests.'], 429);
         }
         try {
-            $audio = Speech::synthesize($this->speakable($text), $mode, (string) $agent['tts_voice'], (float) $agent['tts_speed']);
+            $voice = Agents::voiceFor($agent, $request->string('language') ?: null);
+            $audio = Speech::synthesize($this->speakable($text), $mode, $voice, (float) $agent['tts_speed'], Agents::voiceSettings($agent));
         } catch (\Throwable $e) {
             return Response::json(['error' => $e->getMessage()], 502);
         }

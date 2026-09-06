@@ -108,7 +108,7 @@ final class ChatEngine
         $toolLog = [];
 
         try {
-            $provider = LLM::provider();
+            $provider = LLM::providerFor($agent);
             $round = 0;
             while (true) {
                 $round++;

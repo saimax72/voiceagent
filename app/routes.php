@@ -162,6 +162,9 @@ $router->group(['middleware' => ['auth', 'csrf']], static function ($r): void {
     $r->post('/agents/{id:\d+}/delete', [AgentController::class, 'destroy']);
     $r->post('/agents/{id:\d+}/duplicate', [AgentController::class, 'duplicate']);
     $r->get('/agents/{id:\d+}/test', [AgentController::class, 'test']);
+    $r->post('/agents/{id:\d+}/prompt-preview', [AgentController::class, 'promptPreview']);
+    $r->post('/agents/{id:\d+}/generate-prompt', [AgentController::class, 'generatePrompt'])->middleware('throttle:10,60');
+    $r->post('/agents/{id:\d+}/voice-preview', [AgentController::class, 'voicePreview'])->middleware('throttle:20,60');
 
     // Knowledge base
     $r->get('/agents/{id:\d+}/knowledge', [KnowledgeController::class, 'index']);

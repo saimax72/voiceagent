@@ -4,6 +4,7 @@ declare(strict_types=1);
 namespace App\Services;
 
 use App\Core\DB;
+use App\Core\Logger;
 
 /**
  * Applies SQL migration files from database/migrations in order.
@@ -37,6 +38,29 @@ final class Migrator
             $applied[] = basename($file);
         }
         return $applied;
+    }
+
+    /**
+     * Apply pending migrations automatically after a deployment. Cheap: only touches the database
+     * when the set of migration files changed since the last successful run.
+     */
+    public static function autoRun(): void
+    {
+        $files = glob(APP_ROOT . '/database/migrations/*.sql') ?: [];
+        $signature = md5(implode('|', array_map('basename', $files)));
+        $marker = APP_ROOT . '/storage/cache/schema.marker';
+        if (is_file($marker) && trim((string) @file_get_contents($marker)) === $signature) {
+            return;
+        }
+        try {
+            $applied = self::run(DB::instance());
+            if ($applied) {
+                Logger::info('Applied database updates: ' . implode(', ', $applied));
+            }
+            @file_put_contents($marker, $signature);
+        } catch (\Throwable $e) {
+            Logger::error('Automatic database update failed: ' . $e->getMessage());
+        }
     }
 
     private static function ensureTable(DB $db): void

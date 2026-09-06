@@ -11,7 +11,8 @@
       <div class="card-body" style="flex:1">
         <div class="flex items-center gap-3 mb-3">
           <span class="avatar avatar-lg"><?= e(initials($a['name'])) ?></span>
-          <div class="flex-1"><a href="<?= e(url('/agents/' . $a['id'])) ?>" class="font-bold text-lg" style="color:var(--text)"><?= e($a['name']) ?></a><div class="text-sm text-muted truncate"><?= e($a['website_url'] ?: ($a['business_name'] ?: 'No website linked')) ?></div></div>
+          <div class="flex-1"><a href="<?= e(url('/agents/' . $a['id'])) ?>" class="font-bold text-lg" style="color:var(--text)"><?= e($a['name']) ?></a><div class="text-sm text-muted truncate"><?= e($a['website_url'] ?: ($a['business_name'] ?: 'No website linked')) ?></div>
+            <?php $tags = \App\Services\Agents::tags($a); if ($tags): ?><div class="flex gap-1 wrap mt-1"><?php foreach ($tags as $t): ?><span class="badge badge-neutral" style="padding:1px 8px"><?= e($t) ?></span><?php endforeach; ?></div><?php endif; ?></div>
           <?= $a['status'] === 'active' ? '<span class="badge badge-success"><span class="dot"></span>Active</span>' : '<span class="badge badge-neutral">Paused</span>' ?>
         </div>
         <div class="grid grid-3" style="gap:8px;text-align:center">
