@@ -1,0 +1,228 @@
+<?php
+declare(strict_types=1);
+
+namespace App\Controllers;
+
+use App\Core\App;
+use App\Core\DB;
+use App\Core\Request;
+use App\Core\Response;
+use App\Core\Session;
+use App\Core\Str;
+use App\Core\Validator;
+use App\Services\Agents;
+use App\Services\AI\LLM;
+use App\Services\AI\Speech;
+use App\Services\Jobs\JobQueue;
+use App\Services\Knowledge\Crawler;
+use App\Services\Knowledge\Indexer;
+use App\Services\Plans;
+use App\Services\Settings;
+use App\Services\Tenants;
+
+final class AgentController
+{
+    public function index(Request $request): Response
+    {
+        $tenant = current_tenant();
+        return view('agents/index', [
+            'title' => 'AI Agents',
+            'agents' => Agents::forTenant((int) $tenant['id']),
+            'limit' => Plans::limit($tenant, 'agents'),
+        ], 'layouts/app');
+    }
+
+    public function create(Request $request): Response
+    {
+        $tenant = current_tenant();
+        if (DB::instance()->count('agents', 'tenant_id = ?', [(int) $tenant['id']]) >= Plans::limit($tenant, 'agents')) {
+            flash('error', 'You have reached the number of agents included in your plan. Upgrade to add more.');
+            return redirect('/billing');
+        }
+        return view('agents/create', ['title' => 'New agent', 'personas' => Agents::PERSONAS, 'languages' => App::languages()], 'layouts/app');
+    }
+
+    public function store(Request $request): Response
+    {
+        $tenant = current_tenant();
+        $tenantId = (int) $tenant['id'];
+        if (DB::instance()->count('agents', 'tenant_id = ?', [$tenantId]) >= Plans::limit($tenant, 'agents')) {
+            flash('error', 'You have reached the number of agents included in your plan.');
+            return redirect('/billing');
+        }
+        $v = Validator::make($request->all(), [
+            'name' => 'required|min:2|max:120', 'business_name' => 'nullable|max:160', 'website_url' => 'nullable|url|max:500',
+            'persona' => 'required|in:' . implode(',', array_keys(Agents::PERSONAS)), 'language' => 'required|max:10',
+        ]);
+        if ($v->fails()) {
+            Session::setOldInput($request->all());
+            flash('error', $v->firstError() ?? 'Please check the form.');
+            return redirect('/agents/new');
+        }
+        $d = $v->validated();
+        $url = null;
+        if (!empty($d['website_url'])) {
+            $raw = (string) $d['website_url'];
+            $url = Crawler::normalize(preg_match('~^https?://~i', $raw) ? $raw : 'https://' . $raw);
+        }
+        $agent = Agents::create($tenantId, [
+            'name' => $d['name'], 'business_name' => $d['business_name'] ?: null, 'website_url' => $url,
+            'persona' => $d['persona'], 'language' => array_key_exists($d['language'], App::languages()) ? $d['language'] : 'auto',
+            'lead_notify_email' => current_user()['email'],
+        ]);
+        Tenants::log($tenantId, auth()->id(), 'agent.created', 'agent', (int) $agent['id']);
+        if ($url && $request->boolean('scan', true)) {
+            $maxPages = min(Plans::limit($tenant, 'pages_per_agent'), Settings::int('crawler_max_pages_default', 100));
+            $sourceId = DB::instance()->insert('knowledge_sources', [
+                'tenant_id' => $tenantId, 'agent_id' => (int) $agent['id'], 'type' => 'website', 'title' => Str::host($url), 'url' => $url,
+                'status' => 'pending', 'settings' => json_encode(['max_pages' => $maxPages]), 'created_at' => now(), 'updated_at' => now(),
+            ]);
+            JobQueue::push($tenantId, (int) $agent['id'], 'crawl_website', ['source_id' => $sourceId, 'max_pages' => $maxPages]);
+            flash('success', 'Agent created. We are scanning your website now.');
+            return redirect('/agents/' . $agent['id'] . '/knowledge');
+        }
+        flash('success', 'Agent created. Add some knowledge so it can start answering.');
+        return redirect('/agents/' . $agent['id'] . '/knowledge');
+    }
+
+    public function show(Request $request, string $id): Response
+    {
+        $agent = Agents::findOrFail((int) $id, tenant_id());
+        $db = DB::instance();
+        $agentId = (int) $agent['id'];
+        $monthStart = gmdate('Y-m-01 00:00:00');
+        $stats = [
+            'conversations' => $db->count('conversations', 'agent_id = ? AND is_test = 0 AND started_at >= ?', [$agentId, $monthStart]),
+            'messages' => (int) $db->fetchColumn('SELECT COALESCE(SUM(messages),0) FROM analytics_daily WHERE agent_id = ? AND day >= ?', [$agentId, gmdate('Y-m-01')]),
+            'voice' => (int) $db->fetchColumn('SELECT COALESCE(SUM(voice_messages),0) FROM analytics_daily WHERE agent_id = ? AND day >= ?', [$agentId, gmdate('Y-m-01')]),
+            'leads' => $db->count('leads', 'agent_id = ?', [$agentId]),
+            'unanswered' => $db->count('unanswered_questions', 'agent_id = ? AND status = \'open\'', [$agentId]),
+        ];
+        return view('agents/show', [
+            'title' => $agent['name'],
+            'agent' => $agent,
+            'stats' => $stats,
+            'knowledge' => Indexer::agentStats($agentId),
+            'sources' => $db->fetchAll('SELECT * FROM knowledge_sources WHERE agent_id = ? ORDER BY id DESC LIMIT 5', [$agentId]),
+            'jobs' => JobQueue::activeForAgent($agentId),
+            'recent' => $db->fetchAll('SELECT * FROM conversations WHERE agent_id = ? AND is_test = 0 ORDER BY id DESC LIMIT 5', [$agentId]),
+            'testConversations' => $db->count('conversations', 'agent_id = ? AND is_test = 1', [$agentId]),
+        ], 'layouts/app');
+    }
+
+    public function edit(Request $request, string $id): Response
+    {
+        $agent = Agents::findOrFail((int) $id, tenant_id());
+        $tenant = current_tenant();
+        $plan = Plans::forTenant($tenant);
+        return view('agents/edit', [
+            'title' => $agent['name'],
+            'agent' => $agent,
+            'personas' => Agents::PERSONAS,
+            'languages' => App::languages(),
+            'models' => LLM::modelChoices(),
+            'voices' => Speech::voiceOptions(),
+            'premiumVoice' => (int) ($plan['limits']['premium_voice'] ?? 0) === 1,
+            'hasOpenAI' => Speech::hasOpenAI(),
+            'hasElevenLabs' => Speech::hasElevenLabs(),
+            'leadFields' => Agents::leadFields($agent),
+        ], 'layouts/app');
+    }
+
+    public function update(Request $request, string $id): Response
+    {
+        $agent = Agents::findOrFail((int) $id, tenant_id());
+        $v = Validator::make($request->all(), [
+            'name' => 'required|min:2|max:120', 'business_name' => 'nullable|max:160', 'description' => 'nullable|max:500', 'website_url' => 'nullable|url|max:500',
+            'persona' => 'required|in:' . implode(',', array_keys(Agents::PERSONAS)), 'instructions' => 'nullable|max:6000',
+            'response_length' => 'required|in:short,medium,long', 'language' => 'required|max:10', 'llm_model' => 'nullable|max:80', 'effort' => 'required|in:low,medium,high',
+            'tts_provider' => 'required|in:auto,openai,elevenlabs,browser', 'tts_voice' => 'nullable|max:80', 'tts_speed' => 'required|numeric|between:0.5,2',
+            'stt_provider' => 'required|in:auto,browser', 'greeting_message' => 'nullable|max:1000', 'fallback_message' => 'nullable|max:1000',
+            'lead_instructions' => 'nullable|max:2000', 'lead_notify_email' => 'nullable|email', 'allowed_domains' => 'nullable|max:2000',
+        ]);
+        if ($v->fails()) {
+            Session::setOldInput($request->all());
+            flash('error', $v->firstError() ?? 'Please check the form.');
+            return redirect('/agents/' . $agent['id'] . '/settings');
+        }
+        $d = $v->validated();
+        $fields = array_values(array_intersect(['name', 'email', 'phone', 'message'], $request->array('lead_fields')));
+        if (!in_array('name', $fields, true)) {
+            array_unshift($fields, 'name');
+        }
+        $url = null;
+        if (!empty($d['website_url'])) {
+            $raw = (string) $d['website_url'];
+            $url = Crawler::normalize(preg_match('~^https?://~i', $raw) ? $raw : 'https://' . $raw);
+        }
+        $model = trim((string) ($d['llm_model'] ?? ''));
+        $choices = LLM::modelChoices();
+        if ($model !== '' && !isset($choices[$model])) {
+            $model = '';
+        }
+        $widget = Agents::widgetConfig($agent);
+        if (($widget['header_title'] ?? '') === $agent['name']) {
+            $widget['header_title'] = $d['name'];
+        }
+        Agents::update((int) $agent['id'], [
+            'name' => $d['name'], 'business_name' => $d['business_name'] ?: null, 'description' => $d['description'] ?: null, 'website_url' => $url,
+            'persona' => $d['persona'], 'instructions' => $d['instructions'] ?: null, 'response_length' => $d['response_length'],
+            'language' => array_key_exists($d['language'], App::languages()) ? $d['language'] : 'auto', 'llm_model' => $model ?: null, 'effort' => $d['effort'],
+            'voice_enabled' => $request->boolean('voice_enabled') ? 1 : 0, 'tts_provider' => $d['tts_provider'], 'tts_voice' => $d['tts_voice'] ?: 'alloy',
+            'tts_speed' => round((float) $d['tts_speed'], 2), 'stt_provider' => $d['stt_provider'], 'auto_speak' => $request->boolean('auto_speak') ? 1 : 0,
+            'greeting_message' => $d['greeting_message'] ?: null, 'fallback_message' => $d['fallback_message'] ?: null,
+            'lead_capture_enabled' => $request->boolean('lead_capture_enabled') ? 1 : 0, 'lead_fields' => implode(',', $fields),
+            'lead_instructions' => $d['lead_instructions'] ?: null, 'lead_notify_email' => $d['lead_notify_email'] ?: null,
+            'allowed_domains' => $d['allowed_domains'] ?: null,
+            'widget_config' => json_encode($widget, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE),
+        ]);
+        flash('success', 'Agent settings saved.');
+        return redirect('/agents/' . $agent['id'] . '/settings');
+    }
+
+    public function toggle(Request $request, string $id): Response
+    {
+        $agent = Agents::findOrFail((int) $id, tenant_id());
+        $status = $agent['status'] === 'active' ? 'paused' : 'active';
+        Agents::update((int) $agent['id'], ['status' => $status]);
+        flash('success', $status === 'active' ? 'Agent enabled. It is live on your website.' : 'Agent paused. The widget will not appear on your website.');
+        if ($request->wantsJson()) {
+            return Response::json(['status' => $status]);
+        }
+        return back();
+    }
+
+    public function destroy(Request $request, string $id): Response
+    {
+        $agent = Agents::findOrFail((int) $id, tenant_id());
+        Agents::delete($agent);
+        Tenants::log(tenant_id(), auth()->id(), 'agent.deleted', 'agent', (int) $agent['id'], ['name' => $agent['name']]);
+        flash('success', 'Agent "' . $agent['name'] . '" was deleted.');
+        return redirect('/agents');
+    }
+
+    public function duplicate(Request $request, string $id): Response
+    {
+        $tenant = current_tenant();
+        $agent = Agents::findOrFail((int) $id, tenant_id());
+        if (DB::instance()->count('agents', 'tenant_id = ?', [(int) $tenant['id']]) >= Plans::limit($tenant, 'agents')) {
+            flash('error', 'You have reached the number of agents included in your plan.');
+            return redirect('/billing');
+        }
+        $newId = Agents::duplicate($agent);
+        flash('success', 'Agent duplicated (knowledge is not copied). The copy is paused until you enable it.');
+        return redirect('/agents/' . $newId);
+    }
+
+    public function test(Request $request, string $id): Response
+    {
+        $agent = Agents::findOrFail((int) $id, tenant_id());
+        return view('agents/test', [
+            'title' => 'Test ' . $agent['name'],
+            'agent' => $agent,
+            'knowledge' => Indexer::agentStats((int) $agent['id']),
+            'aiReady' => LLM::configured(),
+            'onboarding' => $request->boolean('onboarding'),
+        ], 'layouts/app');
+    }
+}

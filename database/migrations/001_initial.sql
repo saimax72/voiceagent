@@ -106,6 +106,8 @@ CREATE TABLE IF NOT EXISTS agents (
   messages_count INT UNSIGNED NOT NULL DEFAULT 0,
   leads_count INT UNSIGNED NOT NULL DEFAULT 0,
   last_trained_at DATETIME DEFAULT NULL,
+  installed_domain VARCHAR(190) DEFAULT NULL,
+  installed_at DATETIME DEFAULT NULL,
   created_at DATETIME NOT NULL,
   updated_at DATETIME NOT NULL,
   UNIQUE KEY uq_agents_public (public_id),

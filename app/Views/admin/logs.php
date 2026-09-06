@@ -1,0 +1,4 @@
+<?= \App\Core\View::partial('partials/admin_nav', ['active' => 'logs']) ?>
+<form method="get" class="flex gap-2 mb-4 items-center"><select class="form-select form-control-sm" name="file" onchange="this.form.submit()" style="max-width:260px"><?php foreach ($files as $f): ?><option value="<?= e($f) ?>" <?= $f === $selected ? 'selected' : '' ?>><?= e($f) ?></option><?php endforeach; ?><?php if (!$files): ?><option>No log files yet</option><?php endif; ?></select><span class="text-sm text-muted">Newest entries first (max 300).</span></form>
+<div class="card"><div class="card-body" style="padding:0"><pre style="border-radius:var(--radius);max-height:70vh;font-size:12px;line-height:1.55"><?php foreach ($lines as $line): ?><?= e($line) ?>
+<?php endforeach; ?><?= !$lines ? 'Log is empty.' : '' ?></pre></div></div>
