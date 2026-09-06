@@ -12,7 +12,7 @@ return [
         'debug'     => false,
         'timezone'  => 'UTC',
         'session_name' => 'va_session',
-        'cron_token'   => 'CHANGE_ME_CRON_TOKEN',   // for web-triggered cron: /cron/run?token=...
+        'cron_token'   => 'CHANGE_ME_CRON_TOKEN',   // for web-triggered cron: /webcron/run?token=...
     ],
     'db' => [
         'host'     => 'localhost',

@@ -83,7 +83,10 @@
     if (inList) { out.push('</ul>'); }
     return out.join('');
   }
-  function store(key, value) { try { if (value === null) { localStorage.removeItem(key); } else { localStorage.setItem(key, JSON.stringify(value)); } } catch (e) { /* ignore */ } }
+  function store(key, value) {
+    if (PREVIEW && key !== 'va_visitor') { return; } // dashboard previews never persist conversations
+    try { if (value === null) { localStorage.removeItem(key); } else { localStorage.setItem(key, JSON.stringify(value)); } } catch (e) { /* ignore */ }
+  }
   function load(key) { try { var v = localStorage.getItem(key); return v ? JSON.parse(v) : null; } catch (e) { return null; } }
   function uid() { return 'v' + Math.random().toString(36).slice(2, 12) + Date.now().toString(36); }
   function debounce(fn, ms) { var t; return function () { clearTimeout(t); var a = arguments, s = this; t = setTimeout(function () { fn.apply(s, a); }, ms); }; }
@@ -391,8 +394,8 @@
     var self = this;
     if (this.token) { return Promise.resolve(); }
     if (this.starting) { return this.starting; }
-    var saved = load(STORAGE_KEY);
-    if (saved && saved.token && saved.at && Date.now() - saved.at < 24 * 3600 * 1000 && !(PREVIEW && MODE === 'test')) {
+    var saved = PREVIEW ? null : load(STORAGE_KEY);
+    if (saved && saved.token && saved.at && Date.now() - saved.at < 24 * 3600 * 1000) {
       this.token = saved.token;
       this.starting = this.api('/history?agent=' + encodeURIComponent(AGENT_ID) + '&token=' + encodeURIComponent(this.token), null, 'GET').then(function (data) {
         self.messages = (data.messages || []).filter(function (m) { return m.role !== 'system'; }).map(function (m) { return { id: m.id, role: m.role, content: m.content, modality: m.modality, feedback: m.feedback }; });

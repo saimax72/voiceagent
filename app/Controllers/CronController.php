@@ -10,7 +10,7 @@ use App\Services\Jobs\JobQueue;
 use App\Services\Jobs\JobRunner;
 
 /**
- * Web-triggered cron endpoint: /cron/run?token=... (for hosts without CLI cron or external cron services).
+ * Web-triggered cron endpoint: /webcron/run?token=... (for hosts without CLI cron or external cron services).
  */
 final class CronController
 {

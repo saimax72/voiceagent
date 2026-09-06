@@ -120,13 +120,19 @@ final class AnthropicProvider implements LLMProvider
         $result->inputTokens = (int) ($data['usage']['input_tokens'] ?? 0);
         $result->outputTokens = (int) ($data['usage']['output_tokens'] ?? 0);
         foreach ((array) ($data['content'] ?? []) as $block) {
-            if (($block['type'] ?? '') === 'text') {
+            $type = $block['type'] ?? '';
+            if ($type === 'text') {
                 $result->text .= (string) $block['text'];
                 $result->content[] = ['type' => 'text', 'text' => (string) $block['text']];
-            } elseif (($block['type'] ?? '') === 'tool_use') {
+            } elseif ($type === 'tool_use') {
                 $tool = ['id' => (string) $block['id'], 'name' => (string) $block['name'], 'input' => is_array($block['input'] ?? null) ? $block['input'] : []];
                 $result->toolUses[] = $tool;
                 $result->content[] = ['type' => 'tool_use', 'id' => $tool['id'], 'name' => $tool['name'], 'input' => $tool['input'] ?: new \stdClass()];
+            } elseif ($type === 'thinking' && !empty($block['signature'])) {
+                // Thinking blocks must be replayed unchanged when the turn continues after tool use
+                $result->content[] = ['type' => 'thinking', 'thinking' => (string) ($block['thinking'] ?? ''), 'signature' => (string) $block['signature']];
+            } elseif ($type === 'redacted_thinking' && !empty($block['data'])) {
+                $result->content[] = ['type' => 'redacted_thinking', 'data' => (string) $block['data']];
             }
         }
         return $result;
@@ -155,6 +161,9 @@ final class AnthropicProvider implements LLMProvider
                         'json' => '',
                         'id' => (string) ($block['id'] ?? ''),
                         'name' => (string) ($block['name'] ?? ''),
+                        'thinking' => (string) ($block['thinking'] ?? ''),
+                        'signature' => (string) ($block['signature'] ?? ''),
+                        'data' => (string) ($block['data'] ?? ''),
                     ];
                     if ($blocks[$index]['text'] !== '') {
                         $onText($blocks[$index]['text']);
@@ -164,13 +173,18 @@ final class AnthropicProvider implements LLMProvider
                     $index = (int) ($event['index'] ?? 0);
                     $delta = $event['delta'] ?? [];
                     if (!isset($blocks[$index])) {
-                        $blocks[$index] = ['type' => 'text', 'text' => '', 'json' => '', 'id' => '', 'name' => ''];
+                        $blocks[$index] = ['type' => 'text', 'text' => '', 'json' => '', 'id' => '', 'name' => '', 'thinking' => '', 'signature' => '', 'data' => ''];
                     }
-                    if (($delta['type'] ?? '') === 'text_delta') {
+                    $deltaType = (string) ($delta['type'] ?? '');
+                    if ($deltaType === 'text_delta') {
                         $blocks[$index]['text'] .= (string) $delta['text'];
                         $onText((string) $delta['text']);
-                    } elseif (($delta['type'] ?? '') === 'input_json_delta') {
+                    } elseif ($deltaType === 'input_json_delta') {
                         $blocks[$index]['json'] .= (string) $delta['partial_json'];
+                    } elseif ($deltaType === 'thinking_delta') {
+                        $blocks[$index]['thinking'] .= (string) ($delta['thinking'] ?? '');
+                    } elseif ($deltaType === 'signature_delta') {
+                        $blocks[$index]['signature'] .= (string) ($delta['signature'] ?? '');
                     }
                     break;
                 case 'message_delta':
@@ -216,6 +230,10 @@ final class AnthropicProvider implements LLMProvider
                 $input = is_array($input) ? $input : [];
                 $result->toolUses[] = ['id' => $block['id'], 'name' => $block['name'], 'input' => $input];
                 $result->content[] = ['type' => 'tool_use', 'id' => $block['id'], 'name' => $block['name'], 'input' => $input ?: new \stdClass()];
+            } elseif ($block['type'] === 'thinking' && $block['signature'] !== '') {
+                $result->content[] = ['type' => 'thinking', 'thinking' => $block['thinking'], 'signature' => $block['signature']];
+            } elseif ($block['type'] === 'redacted_thinking' && $block['data'] !== '') {
+                $result->content[] = ['type' => 'redacted_thinking', 'data' => $block['data']];
             }
         }
         $result->refused = $result->stopReason === 'refusal';

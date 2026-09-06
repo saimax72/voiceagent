@@ -108,7 +108,7 @@ final class App
         $path = $request->path();
 
         // Stateless endpoints never start a session (public widget API, cron, webhooks)
-        $stateless = str_starts_with($path, '/api/widget') || str_starts_with($path, '/cron') || str_starts_with($path, '/webhooks');
+        $stateless = str_starts_with($path, '/api/widget') || str_starts_with($path, '/webcron') || str_starts_with($path, '/webhooks');
         if (!$stateless) {
             Session::start();
         }

@@ -204,7 +204,7 @@ code{background:#f1f3f8;padding:2px 6px;border-radius:6px;font-size:13px;word-br
     <p>Website scans and document processing run in the background. In Hostinger hPanel open <strong>Advanced &rarr; Cron Jobs</strong> and add a job that runs every minute:</p>
     <pre>php <?= $e(APP_ROOT) ?>/cron/worker.php</pre>
     <p>Or, if you prefer a web cron, call this URL every minute:</p>
-    <pre><?= $e($success['url']) ?>/cron/run?token=<?= $e($success['cron_token']) ?></pre>
+    <pre><?= $e($success['url']) ?>/webcron/run?token=<?= $e($success['cron_token']) ?></pre>
     <p class="hint">Without a cron job the dashboard still processes jobs while you keep the page open, just more slowly.</p>
     <h2>3. Security</h2>
     <p>For safety, delete <code>install.php</code> from your server now. Your configuration is stored in <code>config/config.php</code>.</p>

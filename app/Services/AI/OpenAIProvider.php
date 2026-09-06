@@ -71,8 +71,9 @@ final class OpenAIProvider implements LLMProvider
         $body = [
             'model' => (string) ($request['model'] ?? $this->model),
             'messages' => $messages,
-            'max_completion_tokens' => (int) ($request['max_tokens'] ?? 1024),
         ];
+        // OpenAI uses max_completion_tokens; many compatible servers (Groq, Ollama, ...) still expect max_tokens
+        $body[$this->label === 'openai' ? 'max_completion_tokens' : 'max_tokens'] = (int) ($request['max_tokens'] ?? 1024);
         if (!empty($request['tools'])) {
             $body['tools'] = array_map(static fn(array $t) => [
                 'type' => 'function',

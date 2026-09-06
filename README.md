@@ -33,7 +33,8 @@ A multi-tenant SaaS platform where businesses train an AI assistant on their web
    ```
    php /home/USERNAME/domains/your-domain.com/public_html/cron/maintenance.php
    ```
-   (Without cron, the dashboard still processes jobs while a page is open.)
+   If your plan has no CLI cron, use a web cron service (or Hostinger's "URL" cron type) to call `https://your-domain/webcron/run?token=YOUR_CRON_TOKEN` every minute; the token is shown at the end of the installation and lives in `config/config.php`.
+   (Without any cron, the dashboard still processes jobs while a page is open.)
 6. Sign in, go to **Admin -> Settings -> AI providers** and add your Anthropic and OpenAI keys. Use the "Test" buttons to verify.
 7. Delete `install.php` from the server.
 

@@ -208,7 +208,7 @@ final class AdminController
             'plans' => Plans::all(),
             'anthropicModels' => LLM::ANTHROPIC_MODELS,
             'webhookUrl' => url('/webhooks/stripe'),
-            'cronUrl' => url('/cron/run', ['token' => (string) \App\Core\App::config('app.cron_token', '')]),
+            'cronUrl' => url('/webcron/run', ['token' => (string) \App\Core\App::config('app.cron_token', '')]),
             'workerAlive' => JobQueue::workerAlive(),
         ], 'layouts/app');
     }

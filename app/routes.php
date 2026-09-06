@@ -283,4 +283,4 @@ $router->group(['prefix' => '/api/widget', 'middleware' => ['cors']], static fun
 // ---------------------------------------------------------------------------
 
 $router->post('/webhooks/stripe', [BillingController::class, 'webhook']);
-$router->any('/cron/run', [CronController::class, 'run']);
+$router->any('/webcron/run', [CronController::class, 'run']);
