@@ -146,7 +146,14 @@ $extraJson = json_encode($extraLangs, JSON_UNESCAPED_UNICODE | JSON_HEX_APOS | J
           <div class="form-group"><label class="form-label">Speaking speed: <span x-text="speed + 'x'"></span></label><input type="range" name="tts_speed" min="0.7" max="1.4" step="0.05" x-model.number="speed"></div>
           <div class="form-group"><label class="form-label">Speech recognition</label><select class="form-select" name="stt_provider"><option value="auto" <?= $o('stt_provider') === 'auto' ? 'selected' : '' ?>>Automatic (server transcription when available)</option><option value="browser" <?= $o('stt_provider') === 'browser' ? 'selected' : '' ?>>Browser only (free)</option></select><div class="form-hint">Server transcription works in every browser and supports 50+ languages.</div></div>
         </div>
-        <div class="form-group"><label class="switch"><input type="checkbox" name="auto_speak" value="1" <?= (int) $agent['auto_speak'] ? 'checked' : '' ?>><span class="track"></span><span class="switch-label">Read replies aloud while in voice mode</span></label></div>
+        <div class="form-group"><label class="form-label">Read replies aloud</label>
+          <select class="form-select" name="speak_replies">
+            <?php $speak = (string) ($agent['speak_replies'] ?? ((int) $agent['auto_speak'] ? 'voice' : 'never')); ?>
+            <option value="voice" <?= $speak === 'voice' ? 'selected' : '' ?>>When the visitor talks or uses voice mode (recommended)</option>
+            <option value="always" <?= $speak === 'always' ? 'selected' : '' ?>>Always, also for typed questions</option>
+            <option value="never" <?= $speak === 'never' ? 'selected' : '' ?>>Never (visitors can still tap the speaker icon on a reply)</option>
+          </select>
+          <div class="form-hint">Every reply also gets a small speaker button so visitors can listen on demand. The greeting is spoken when the widget opens in voice mode.</div></div>
       </div>
     </div>
   </div>

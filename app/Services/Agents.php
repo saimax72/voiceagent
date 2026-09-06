@@ -440,6 +440,7 @@ final class Agents
                 'languages' => self::additionalLanguages($agent),
                 'voice_enabled' => (bool) $agent['voice_enabled'],
                 'auto_speak' => (bool) $agent['auto_speak'],
+                'speak_replies' => in_array($agent['speak_replies'] ?? 'voice', ['voice', 'always', 'never'], true) ? $agent['speak_replies'] : 'voice',
                 'interruptible' => (bool) ($agent['interruptible'] ?? 1),
                 'greeting' => $greetings['default'],
                 'greetings' => $greetings,

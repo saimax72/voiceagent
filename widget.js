@@ -34,7 +34,9 @@
     user: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></svg>',
     thumbUp: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 10v11H3V10zM7 10l4-7a2.5 2.5 0 0 1 2.5 2.5V10h5a2 2 0 0 1 2 2.3l-1.4 7A2 2 0 0 1 17.2 21H7"/></svg>',
     thumbDown: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 14V3h4v11zM17 14l-4 7a2.5 2.5 0 0 1-2.5-2.5V14h-5a2 2 0 0 1-2-2.3l1.4-7A2 2 0 0 1 6.8 3H17"/></svg>',
-    check: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5L20 7"/></svg>'
+    check: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5L20 7"/></svg>',
+    speaker: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9v6h4l5 4V5L8 9z"/><path d="M16 9a4 4 0 0 1 0 6M18.5 6.5a8 8 0 0 1 0 11"/></svg>',
+    speakerOff: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9v6h4l5 4V5L8 9z"/><path d="M17 9l4 6M21 9l-4 6"/></svg>'
   };
 
   var FONT_FAMILIES = {
@@ -112,6 +114,8 @@
     return [
       ':host{all:initial}',
       '*,*::before,*::after{box-sizing:border-box}',
+      '[hidden]{display:none!important}',
+      '.va-listen{border:0;background:transparent;color:var(--va-muted);cursor:pointer;width:22px;height:22px;border-radius:6px;display:inline-grid;place-items:center;padding:0;margin-left:2px}.va-listen:hover,.va-listen.on{color:var(--va-primary);background:var(--va-primary-soft)}.va-listen svg{width:13px;height:13px}',
       '.va{font-family:' + font + ';font-size:14.5px;line-height:1.5;color:' + text + ';-webkit-font-smoothing:antialiased;--va-primary:' + w.primary_color + ';--va-primary-soft:' + rgba(w.primary_color, .14) + ';--va-header-bg:' + w.header_bg + ';--va-header-text:' + w.header_text + ';--va-bg:' + bg + ';--va-text:' + text + ';--va-muted:' + muted + ';--va-border:' + border + ';--va-input-bg:' + inputBg + ';--va-bot-bg:' + w.bot_bubble_bg + ';--va-bot-text:' + w.bot_bubble_text + ';--va-user-bg:' + w.user_bubble_bg + ';--va-user-text:' + w.user_bubble_text + ';--va-btn:' + w.button_color + ';--va-btn-text:' + w.button_text_color + ';--va-radius:' + radius + 'px;--va-level:0}',
       '.va-launcher{position:fixed;' + side + ':' + ox + 'px;bottom:' + oy + 'px;z-index:' + (parseInt(w.z_index, 10) || 2147483000) + ';display:flex;align-items:center;gap:10px;flex-direction:' + (side === 'left' ? 'row' : 'row-reverse') + '}',
       '.va-launcher-btn{width:' + launcher + 'px;height:' + launcher + 'px;border-radius:' + launcherRadius + ';border:0;cursor:pointer;background:var(--va-btn);color:var(--va-btn-text);display:grid;place-items:center;box-shadow:0 10px 30px ' + rgba(w.button_color, .35) + ',0 2px 6px rgba(15,23,42,.15);transition:transform .2s cubic-bezier(.2,.8,.2,1),box-shadow .2s;position:relative;padding:0;overflow:hidden}',
@@ -270,6 +274,7 @@
         '<div class="va-header">' +
           '<div class="va-avatar"></div>' +
           '<div class="va-htext"><div class="va-htitle"></div><div class="va-hsub"><span class="va-dot"></span><span class="va-hsubtext"></span></div></div>' +
+          '<button class="va-hbtn va-mute" type="button" title="Sound on / off" aria-label="Sound on or off">' + ICONS.speaker + '</button>' +
           '<button class="va-hbtn va-voicetoggle" type="button" title="Voice conversation" aria-label="Voice conversation">' + ICONS.headset + '</button>' +
           '<button class="va-hbtn va-reset" type="button" title="New conversation" aria-label="New conversation">' + ICONS.refresh + '</button>' +
           '<button class="va-hbtn va-close" type="button" aria-label="Close">' + ICONS.close + '</button>' +
@@ -293,9 +298,12 @@
     this.el = {
       launcher: q('.va-launcher-btn'), licon: q('.va-licon'), label: q('.va-label'), panel: q('.va-panel'), avatar: q('.va-avatar'),
       title: q('.va-htitle'), subtitle: q('.va-hsubtext'), body: q('.va-body'), input: q('.va-input'), send: q('.va-ibtn.send'), mic: q('.va-ibtn.mic'),
-      brand: q('.va-brand'), voiceToggle: q('.va-voicetoggle'), orbWrap: q('.va-orb-wrap'), vstatus: q('.va-vstatus'), vhint: q('.va-vhint'),
+      brand: q('.va-brand'), voiceToggle: q('.va-voicetoggle'), mute: q('.va-mute'), orbWrap: q('.va-orb-wrap'), vstatus: q('.va-vstatus'), vhint: q('.va-vhint'),
       stop: q('.va-stop'), typeInstead: q('.va-typeinstead'), reset: q('.va-reset'), close: q('.va-close')
     };
+    this.muted = load('va_muted') === true;
+    this.renderMute();
+    this.el.mute.addEventListener('click', function () { self.setMuted(!self.muted); });
     this.el.launcher.addEventListener('click', function () { self.toggle(); });
     this.el.close.addEventListener('click', function () { self.toggle(false); });
     this.el.reset.addEventListener('click', function () { self.resetConversation(); });
@@ -328,6 +336,7 @@
     this.el.mic.title = w.mic_text || 'Tap to talk';
     this.el.mic.hidden = !a.voice_enabled;
     this.el.voiceToggle.hidden = !a.voice_enabled;
+    this.renderMute();
     if (this.cfg.branding && this.cfg.branding.show) {
       this.el.brand.innerHTML = '<a href="' + esc(this.cfg.branding.url) + '?utm_source=widget" target="_blank" rel="noopener">' + esc(this.cfg.branding.text) + '</a>';
       this.el.brand.hidden = false;
@@ -380,13 +389,54 @@
   };
 
   Widget.prototype.setVoiceMode = function (on) {
+    var self = this;
     if (!this.agent.voice_enabled) { on = false; }
+    var wasOn = this.voiceMode;
     this.voiceMode = on;
     this.container.classList.toggle('voice', on);
     this.el.voiceToggle.classList.toggle('active', on);
     if (!on) { this.stopListening(); this.interrupt(); }
     this.updateVoiceUi();
-    if (on) { this.setVoiceStatus(this.w.mic_text || 'Tap to talk', 'Tap the circle and ask your question'); this.playTone(660, .08); }
+    if (on) {
+      this.setVoiceStatus(this.w.mic_text || 'Tap to talk', 'Tap the circle and ask your question');
+      this.playTone(660, .08);
+      // Speak the greeting once when a conversation starts in voice mode
+      if (!wasOn && !this.messages.length && !this.greetingSpoken && this.speakMode() !== 'never' && this.greeting()) {
+        this.greetingSpoken = true;
+        this.ensureConversation().then(function () { self.speakText(self.greeting()); }).catch(function () { /* ignore */ });
+      }
+    }
+  };
+
+  /* Read-aloud policy: 'voice' (spoken replies only after voice input / in voice mode), 'always', 'never'. Mute wins. */
+  Widget.prototype.speakMode = function () {
+    if (this.muted) { return 'never'; }
+    var mode = this.agent.speak_replies || (this.agent.auto_speak ? 'voice' : 'never');
+    return mode === 'always' || mode === 'never' ? mode : 'voice';
+  };
+  Widget.prototype.setMuted = function (muted) {
+    this.muted = !!muted;
+    store('va_muted', this.muted ? true : null);
+    if (this.muted) { this.interrupt(); }
+    this.renderMute();
+  };
+  Widget.prototype.renderMute = function () {
+    if (!this.el.mute) { return; }
+    this.el.mute.innerHTML = this.muted ? ICONS.speakerOff : ICONS.speaker;
+    this.el.mute.title = this.muted ? 'Sound is off - click to turn on' : 'Sound is on - click to mute';
+    this.el.mute.classList.toggle('active', !this.muted);
+    this.el.mute.hidden = !this.agent.voice_enabled;
+  };
+  /* Speak an arbitrary assistant text (greeting or a reply via the listen button). */
+  Widget.prototype.speakText = function (text) {
+    var self = this;
+    if (!text || this.muted) { return; }
+    this.ttsReset();
+    if (this.abort) { try { this.abort.abort(); } catch (e) { /* ignore */ } this.abort = null; }
+    this.setState('speaking'); this.setVoiceStatus(this.w.speaking_text || 'Speaking...', '');
+    var parts = String(text).match(/[^.!?]+[.!?]+(\s|$)|[^.!?]+$/g) || [String(text)];
+    parts.forEach(function (p) { if (p.trim()) { self.ttsEnqueue(p.trim()); } });
+    this.ttsFinish();
   };
 
   /* ----------------------------------------------------------- conversation */
@@ -455,11 +505,14 @@
     var w = this.w;
     var chips = (w.suggested_questions || []).filter(Boolean).slice(0, 6);
     var html = '<div class="va-welcome"><div class="va-big">' + this.avatarHtml() + '</div><h3>' + esc(w.greeting_text || 'Hi there!') + '</h3><p>' + esc(w.welcome_message || '') + '</p></div>';
-    if (this.greeting()) { html += '<div class="va-msg bot"><div><div class="va-bubble">' + md(this.greeting()) + '</div></div></div>'; }
     if (chips.length) {
       html += '<div class="va-toolbar"><span>' + esc(w.ask_me_text || 'Ask me anything') + '</span></div><div class="va-chips">' + chips.map(function (c) { return '<button class="va-chip" type="button">' + esc(c) + '</button>'; }).join('') + '</div>';
     }
     this.el.body.innerHTML = html;
+    if (this.greeting()) {
+      var greetingEl = this.bubble({ role: 'assistant', content: this.greeting(), id: 0 });
+      this.el.body.insertBefore(greetingEl, this.el.body.querySelector('.va-toolbar'));
+    }
     var self = this;
     Array.prototype.forEach.call(this.el.body.querySelectorAll('.va-chip'), function (chip) { chip.addEventListener('click', function () { self.send(chip.textContent, 'text'); }); });
   };
@@ -479,10 +532,21 @@
     div.className = 'va-msg ' + (m.role === 'user' ? 'user' : 'bot');
     var meta = '';
     if (m.modality === 'voice') { meta += '<span class="va-mic-tag">' + ICONS.mic + ' voice</span>'; }
+    if (m.role === 'assistant' && m.content) {
+      meta += '<button type="button" class="va-listen" title="Listen" aria-label="Read this reply aloud">' + ICONS.speaker + '</button>';
+    }
     if (m.role === 'assistant' && m.id) {
       meta += '<span class="va-fb' + (m.feedback ? ' done' : '') + '"><button type="button" data-v="1" class="' + (m.feedback === 1 ? 'on' : '') + '" aria-label="Helpful">' + ICONS.thumbUp + '</button><button type="button" data-v="-1" class="' + (m.feedback === -1 ? 'on' : '') + '" aria-label="Not helpful">' + ICONS.thumbDown + '</button></span>';
     }
     div.innerHTML = '<div style="min-width:0"><div class="va-bubble">' + (m.role === 'user' ? esc(m.content).replace(/\n/g, '<br>') : md(m.content)) + '</div>' + (meta ? '<div class="va-meta">' + meta + '</div>' : '') + '</div>';
+    var listen = div.querySelector('.va-listen');
+    if (listen) {
+      listen.addEventListener('click', function () {
+        if (self.state === 'speaking') { self.interrupt(); return; }
+        self.setMuted(false);
+        self.speakText(m.content);
+      });
+    }
     Array.prototype.forEach.call(div.querySelectorAll('.va-fb button'), function (btn) {
       btn.addEventListener('click', function () {
         var v = parseInt(btn.getAttribute('data-v'), 10);
@@ -530,7 +594,8 @@
       self.scroll();
       self.setState('thinking');
       self.setVoiceStatus(self.w.thinking_text || 'Thinking...', '');
-      var speakEnabled = modality === 'voice' || (self.voiceMode && self.agent.auto_speak);
+      var mode = self.speakMode();
+      var speakEnabled = mode === 'always' || (mode !== 'never' && (modality === 'voice' || self.voiceMode));
       self.ttsReset();
       var spoken = 0;
       var full = '';
@@ -688,9 +753,8 @@
   Widget.prototype.startListening = function () {
     var self = this;
     if (this.busy && this.state === 'thinking') { return; }
-    if (!this.sttSupported()) {
-      var fallbackHint = (window.SpeechRecognition || window.webkitSpeechRecognition) ? '' : 'Voice input needs a browser like Chrome, Edge or Safari.';
-      this.setVoiceStatus('Voice not available', fallbackHint || 'Please type your question instead.');
+    if (!this.sttSupported() || (this.browserSttFailed && !(this.agent.stt && this.agent.stt.mode === 'server'))) {
+      this.setVoiceStatus('Voice input is not available in this browser', 'Please use Chrome, Edge or Safari, or type your question instead.');
       return;
     }
     this.interrupt();
@@ -715,12 +779,18 @@
     };
     rec.onerror = function (e) {
       self.stopLevelMeter();
-      if (e.error === 'not-allowed' || e.error === 'service-not-allowed') { self.setVoiceStatus('Microphone blocked', 'Please allow microphone access in your browser.'); }
+      if (e.error === 'not-allowed' || e.error === 'service-not-allowed') { self.setVoiceStatus('Microphone blocked', 'Please allow microphone access for this site in your browser settings, then try again.'); }
+      else if (e.error === 'network' || e.error === 'language-not-supported' || e.error === 'audio-capture') {
+        // Chromium builds without Google speech services (Brave, Opera, embedded browsers) report "network"
+        self.browserSttFailed = true;
+        self.setVoiceStatus('Voice input is not available in this browser', 'Please use Chrome, Edge or Safari, or type your question instead.');
+      }
       else if (e.error !== 'aborted' && e.error !== 'no-speech') { self.setVoiceStatus('Could not hear you', 'Tap the circle and try again.'); }
       else if (e.error === 'no-speech') { self.setVoiceStatus(self.w.mic_text || 'Tap to talk', 'I did not catch that. Tap to try again.'); }
       self.recognition = null; self.setState('idle');
     };
     rec.onend = function () {
+      clearTimeout(self.recTimeout);
       self.stopLevelMeter();
       self.recognition = null;
       var text = finalText.trim();
@@ -728,7 +798,17 @@
       else if (self.state === 'listening') { self.setState('idle'); self.setVoiceStatus(self.w.mic_text || 'Tap to talk', 'I did not catch that. Tap to try again.'); }
     };
     this.recognition = rec;
-    try { rec.start(); } catch (e) { this.recognition = null; this.setVoiceStatus('Could not start the microphone', ''); }
+    try { rec.start(); } catch (e) { this.recognition = null; this.setVoiceStatus('Could not start the microphone', ''); return; }
+    // Safety net: if recognition never reports anything (some browsers hang silently), give up after 25s
+    var self2 = this;
+    clearTimeout(this.recTimeout);
+    this.recTimeout = setTimeout(function () {
+      if (self2.recognition === rec && self2.state === 'listening') {
+        try { rec.abort(); } catch (e) { /* ignore */ }
+        self2.recognition = null; self2.stopLevelMeter(); self2.setState('idle');
+        self2.setVoiceStatus('No speech detected', 'Please check your microphone and tap to try again, or type your question.');
+      }
+    }, 25000);
   };
 
   Widget.prototype.startRecording = function () {
