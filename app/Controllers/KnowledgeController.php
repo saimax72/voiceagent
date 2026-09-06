@@ -69,7 +69,7 @@ final class KnowledgeController
     {
         $agent = $this->agent($id);
         try {
-            KnowledgeImport::addWebsite($agent, current_tenant(), $request->string('url'), $request->int('max_pages') ?: null, $request->boolean('restrict_to_path'));
+            KnowledgeImport::addWebsite($agent, current_tenant(), $request->string('url'), $request->int('max_pages') ?: null, $request->boolean('restrict_to_path'), $request->boolean('ignore_robots', true));
             flash('success', 'Website scan started. This usually takes a few minutes.');
         } catch (\RuntimeException $e) {
             flash('error', $e->getMessage());
@@ -183,8 +183,16 @@ final class KnowledgeController
         $perPage = 50;
         $total = DB::instance()->count('knowledge_documents', 'source_id = ?', [(int) $source['id']]);
         $documents = DB::instance()->fetchAll('SELECT id, title, url, status, char_count, chunk_count, is_enabled, error_message, updated_at FROM knowledge_documents WHERE source_id = ? ORDER BY id ASC LIMIT ' . $perPage . ' OFFSET ' . (($page - 1) * $perPage), [(int) $source['id']]);
+        // Pages that could not be read during the latest scan (helps diagnose blocked or empty sites)
+        $problems = [];
+        if ($source['type'] === 'website') {
+            $job = DB::instance()->fetch('SELECT id FROM jobs WHERE agent_id = ? AND type = \'crawl_website\' AND payload LIKE ? ORDER BY id DESC LIMIT 1', [(int) $agent['id'], '%"source_id":' . (int) $source['id'] . '%']);
+            if ($job) {
+                $problems = DB::instance()->fetchAll("SELECT url, status, http_status, error FROM crawl_urls WHERE job_id = ? AND status IN ('failed','skipped') ORDER BY id ASC LIMIT 40", [(int) $job['id']]);
+            }
+        }
         return view('knowledge/source', [
-            'title' => $source['title'], 'agent' => $agent, 'source' => $source, 'documents' => $documents,
+            'title' => $source['title'], 'agent' => $agent, 'source' => $source, 'documents' => $documents, 'problems' => $problems,
             'page' => $page, 'pages' => (int) ceil($total / $perPage), 'total' => $total, 'settings' => json_field($source['settings']), 'sourceStats' => json_field($source['stats']),
         ], 'layouts/app');
     }

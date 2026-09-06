@@ -37,36 +37,42 @@ final class Chunker
             $sections[] = $current;
         }
 
-        // Merge tiny sections into the following one so headings without content still add context
+        // Pack adjacent sections together up to the target size (page builders emit many tiny headed sections);
+        // sections larger than the target are split on paragraph/sentence boundaries with overlap.
         $chunks = [];
-        $carry = null; // ['heading' => string, 'body' => string]
+        $buffer = ['heading' => null, 'content' => ''];
+        $flush = static function () use (&$chunks, &$buffer): void {
+            if (trim($buffer['content']) !== '') {
+                $chunks[] = ['heading' => $buffer['heading'] !== null ? mb_substr($buffer['heading'], 0, 280) : null, 'content' => trim($buffer['content'])];
+            }
+            $buffer = ['heading' => null, 'content' => ''];
+        };
         foreach ($sections as $section) {
             $body = trim($section['body']);
             $heading = $section['heading'];
-            if ($carry !== null) {
-                $heading = $heading !== null ? $carry['heading'] . ' / ' . $heading : $carry['heading'];
-                if ($carry['body'] !== '') {
-                    $body = $carry['body'] . "\n\n" . $body;
-                }
-                $carry = null;
-            }
-            if (mb_strlen($body) < 60 && $heading !== null) {
-                $carry = ['heading' => $heading, 'body' => $body];
+            // Keep the heading inside the text so merged sections stay understandable
+            $text = ($heading !== null ? $heading . "\n" : '') . $body;
+            if (trim($text) === '') {
                 continue;
             }
-            foreach (self::splitBody($body, $size, $overlap) as $piece) {
-                $chunks[] = ['heading' => $heading !== null ? mb_substr($heading, 0, 280) : null, 'content' => $piece];
+            if (mb_strlen($text) > $size) {
+                $flush();
+                foreach (self::splitBody($body, $size, $overlap) as $piece) {
+                    $chunks[] = ['heading' => $heading !== null ? mb_substr($heading, 0, 280) : null, 'content' => $piece];
+                }
+                continue;
             }
-        }
-        if ($carry !== null) {
-            $content = trim($carry['body']) !== '' ? $carry['body'] : $carry['heading'];
-            if ($chunks !== [] && mb_strlen($chunks[count($chunks) - 1]['content']) + mb_strlen($content) < $size) {
-                $last = count($chunks) - 1;
-                $chunks[$last]['content'] .= "\n\n" . $carry['heading'] . "\n" . $content;
+            if ($buffer['content'] !== '' && mb_strlen($buffer['content']) + mb_strlen($text) + 2 > $size) {
+                $flush();
+            }
+            if ($buffer['content'] === '') {
+                $buffer['heading'] = $heading;
+                $buffer['content'] = $text;
             } else {
-                $chunks[] = ['heading' => mb_substr($carry['heading'], 0, 280), 'content' => $content];
+                $buffer['content'] .= "\n\n" . $text;
             }
         }
+        $flush();
         return $chunks;
     }
 

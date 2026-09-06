@@ -43,7 +43,7 @@ final class KnowledgeImport
     }
 
     /** Start (or restart) a website scan. Returns the source id. */
-    public static function addWebsite(array $agent, array $tenant, string $rawUrl, ?int $maxPages = null, bool $restrictToPath = false): int
+    public static function addWebsite(array $agent, array $tenant, string $rawUrl, ?int $maxPages = null, bool $restrictToPath = false, bool $ignoreRobots = true): int
     {
         $rawUrl = trim($rawUrl);
         $url = $rawUrl !== '' ? Crawler::normalize(preg_match('~^https?://~i', $rawUrl) ? $rawUrl : 'https://' . $rawUrl) : null;
@@ -54,7 +54,7 @@ final class KnowledgeImport
         $maxPages = max(1, min($limit > 0 ? $limit : 5000, $maxPages ?? min($limit > 0 ? $limit : 5000, Settings::int('crawler_max_pages_default', 100))));
         $db = DB::instance();
         $now = now();
-        $settings = ['max_pages' => $maxPages, 'restrict_to_path' => $restrictToPath];
+        $settings = ['max_pages' => $maxPages, 'restrict_to_path' => $restrictToPath, 'ignore_robots' => $ignoreRobots];
         $existing = $db->fetch('SELECT * FROM knowledge_sources WHERE agent_id = ? AND type = \'website\' AND url = ? LIMIT 1', [(int) $agent['id'], $url]);
         if ($existing) {
             $db->update('knowledge_sources', ['status' => 'pending', 'error_message' => null, 'settings' => json_encode($settings), 'updated_at' => $now], 'id = :id', ['id' => $existing['id']]);
@@ -86,7 +86,7 @@ final class KnowledgeImport
         }
         $sourceId = DB::instance()->insert('knowledge_sources', [
             'tenant_id' => (int) $agent['tenant_id'], 'agent_id' => (int) $agent['id'], 'type' => 'url', 'title' => mb_substr($url, 0, 200), 'url' => $url,
-            'status' => 'pending', 'created_at' => now(), 'updated_at' => now(),
+            'status' => 'pending', 'settings' => json_encode(['ignore_robots' => true]), 'created_at' => now(), 'updated_at' => now(),
         ]);
         JobQueue::push((int) $agent['tenant_id'], (int) $agent['id'], 'process_source', ['source_id' => $sourceId]);
         return $sourceId;

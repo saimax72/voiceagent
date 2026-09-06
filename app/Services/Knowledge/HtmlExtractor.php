@@ -13,7 +13,8 @@ final class HtmlExtractor
 {
     private const SKIP_TAGS = ['script', 'style', 'noscript', 'svg', 'canvas', 'iframe', 'template', 'nav', 'footer', 'header', 'aside', 'form', 'button', 'select', 'option', 'input', 'textarea', 'video', 'audio', 'picture', 'source', 'map', 'object', 'embed', 'dialog'];
     private const BLOCK_TAGS = ['p', 'div', 'section', 'article', 'main', 'br', 'hr', 'li', 'ul', 'ol', 'dl', 'dt', 'dd', 'table', 'tr', 'blockquote', 'pre', 'figure', 'figcaption', 'address', 'details', 'summary', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'td', 'th', 'thead', 'tbody'];
-    private const SKIP_CLASS_PATTERN = '/(^|\s|-|_)(cookie|consent|gdpr|popup|modal|sidebar|breadcrumb|share|social|comment|advert|banner|newsletter|menu|navbar|nav-|pagination|skip-link)/i';
+    private const SKIP_CLASS_PATTERN = '/(^|\s|-|_)(cookie|consent|gdpr|popup|modal|sidebar|breadcrumb|share|social|comment|advert|newsletter|navbar|nav-menu|menu-item|mega-menu|pagination|skip-link)/i';
+    private static bool $lenient = false;
 
     /**
      * @return array{title:string,description:string,text:string,links:string[],lang:string,noindex:bool,canonical:string}
@@ -79,8 +80,23 @@ final class HtmlExtractor
         }
         $h1 = $xpath->query('.//h1', $root)->item(0);
         $text = '';
+        self::$lenient = false;
         self::walk($root, $text);
         $text = Str::normalizeWhitespace($text);
+        // Fallback: if the main region yielded almost nothing, read the whole body with minimal filtering
+        if (mb_strlen($text) < 120) {
+            $body = $xpath->query('//body')->item(0);
+            if ($body) {
+                $all = '';
+                self::$lenient = true;
+                self::walk($body, $all);
+                self::$lenient = false;
+                $all = Str::normalizeWhitespace($all);
+                if (mb_strlen($all) > mb_strlen($text)) {
+                    $text = $all;
+                }
+            }
+        }
         // Drop a leading duplicated title
         if ($result['title'] === '' && $h1) {
             $result['title'] = Str::normalizeWhitespace($h1->textContent);
@@ -104,14 +120,23 @@ final class HtmlExtractor
             return;
         }
         $tag = strtolower($node->tagName);
-        if (in_array($tag, self::SKIP_TAGS, true)) {
-            return;
+        if (self::$lenient) {
+            if (in_array($tag, ['script', 'style', 'noscript', 'svg', 'canvas', 'iframe', 'template', 'select', 'option', 'video', 'audio', 'picture', 'source'], true)) {
+                return;
+            }
+        } else {
+            if (in_array($tag, self::SKIP_TAGS, true)) {
+                return;
+            }
+            if ($node->getAttribute('aria-hidden') === 'true' || in_array($node->getAttribute('role'), ['navigation', 'banner', 'contentinfo', 'dialog', 'menu'], true)) {
+                return;
+            }
+            $classId = $node->getAttribute('class') . ' ' . $node->getAttribute('id');
+            if (trim($classId) !== '' && preg_match(self::SKIP_CLASS_PATTERN, $classId) && !in_array($tag, ['main', 'article', 'body'], true)) {
+                return;
+            }
         }
-        if ($node->getAttribute('aria-hidden') === 'true' || $node->getAttribute('hidden') !== '' || in_array($node->getAttribute('role'), ['navigation', 'banner', 'contentinfo', 'dialog', 'menu'], true)) {
-            return;
-        }
-        $classId = $node->getAttribute('class') . ' ' . $node->getAttribute('id');
-        if (trim($classId) !== '' && preg_match(self::SKIP_CLASS_PATTERN, $classId) && !in_array($tag, ['main', 'article', 'body'], true)) {
+        if ($node->getAttribute('hidden') !== '') {
             return;
         }
         $style = $node->getAttribute('style');

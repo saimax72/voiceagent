@@ -76,6 +76,7 @@ $badge = static fn(string $s) => match ($s) { 'ready' => '<span class="badge bad
         <div class="form-group"><label class="form-label">Website address</label><input class="form-control" name="url" value="<?= e($agent['website_url'] ?? '') ?>" placeholder="https://www.example.com" required></div>
         <div class="form-group"><label class="form-label">Maximum pages</label><input class="form-control" type="number" name="max_pages" min="1" max="<?= (int) $limits['pages'] ?>" value="<?= (int) $defaultPages ?>"><div class="form-hint">Your plan includes up to <?= format_number($limits['pages']) ?> pages per agent. Sitemaps are used when available.</div></div>
         <div class="form-group"><label class="checkbox"><input type="checkbox" name="restrict_to_path" value="1"> <span>Only scan pages under the given path (e.g. /help/)</span></label></div>
+        <div class="form-group"><input type="hidden" name="ignore_robots" value="0"><label class="checkbox"><input type="checkbox" name="ignore_robots" value="1" checked> <span>Include pages hidden from search engines (noindex / robots.txt)</span></label><div class="form-hint">Keep this on for your own website. Many sites under construction hide themselves from Google, which would otherwise leave the assistant with nothing to learn.</div></div>
         <button class="btn btn-primary btn-block" type="submit">Scan website</button>
       </form>
 

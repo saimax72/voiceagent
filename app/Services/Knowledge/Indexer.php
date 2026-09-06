@@ -177,7 +177,10 @@ final class Indexer
                         self::replaceSourceDocuments($source, $docs);
                         break;
                     case 'url':
-                        $res = Http::get((string) $source['url'], ['timeout' => 20, 'public_only' => true, 'max_bytes' => 5_000_000, 'user_agent' => (string) Settings::get('crawler_user_agent', 'VoiceAgentBot/1.0')]);
+                        $res = Http::get((string) $source['url'], ['timeout' => 20, 'public_only' => true, 'max_bytes' => 5_000_000, 'ipv4' => true, 'user_agent' => (string) Settings::get('crawler_user_agent', 'VoiceAgentBot/1.0')]);
+                        if ($res->error !== '' || in_array($res->status, [0, 401, 403, 406, 429, 503], true)) {
+                            $res = Http::get((string) $source['url'], ['timeout' => 20, 'public_only' => true, 'max_bytes' => 5_000_000, 'ipv4' => true, 'user_agent' => 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36']);
+                        }
                         if (!$res->ok()) {
                             throw new \RuntimeException('Could not fetch the page (' . ($res->error ?: 'HTTP ' . $res->status) . ').');
                         }

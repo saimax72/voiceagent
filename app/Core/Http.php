@@ -130,6 +130,8 @@ final class Http
             CURLOPT_ENCODING => '',
             CURLOPT_PROTOCOLS => CURLPROTO_HTTP | CURLPROTO_HTTPS,
             CURLOPT_SSL_VERIFYPEER => true,
+            // Many sites publish broken IPv6 records; crawling prefers IPv4 unless told otherwise
+            CURLOPT_IPRESOLVE => !empty($options['ipv4']) ? CURL_IPRESOLVE_V4 : CURL_IPRESOLVE_WHATEVER,
             CURLOPT_HEADERFUNCTION => static function ($ch, string $line) use (&$responseHeaders, &$statusHolder): int {
                 if (preg_match('#^HTTP/\d(?:\.\d)?\s+(\d{3})#', $line, $m)) {
                     $statusHolder['status'] = (int) $m[1];

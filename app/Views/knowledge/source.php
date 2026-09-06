@@ -8,6 +8,14 @@
   </div>
 </div>
 <?php if ($source['status'] === 'error'): ?><div class="alert alert-error"><span><?= e($source['error_message']) ?></span></div><?php endif; ?>
+<?php if (!empty($problems)): ?>
+<div class="card mb-4">
+  <div class="card-header"><div><h3>Pages that could not be read</h3><div class="sub">From the latest scan. Failed pages are retried on the next re-scan.</div></div></div>
+  <div class="table-wrap"><table class="table table-compact"><thead><tr><th>Page</th><th>Result</th></tr></thead><tbody>
+    <?php foreach ($problems as $p): ?><tr><td class="truncate" style="max-width:420px"><a href="<?= e($p['url']) ?>" target="_blank" rel="noopener"><?= e(str_limit($p['url'], 80)) ?></a></td><td class="text-sm <?= $p['status'] === 'failed' ? 'text-danger' : 'text-muted' ?>"><?= e($p['error'] ?: ucfirst($p['status'])) ?></td></tr><?php endforeach; ?>
+  </tbody></table></div>
+</div>
+<?php endif; ?>
 <div class="card">
   <div class="table-wrap"><table class="table">
     <thead><tr><th>Page</th><th>Status</th><th>Size</th><th></th></tr></thead>

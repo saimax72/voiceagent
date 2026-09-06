@@ -54,6 +54,11 @@ final class Crawler
         $disallow = (array) ($state['disallow'] ?? []);
         $userAgent = (string) Settings::get('crawler_user_agent', 'VoiceAgentBot/1.0');
         $timeout = max(5, Settings::int('crawler_timeout', 15));
+        // Owners scanning their own website usually want pages hidden from search engines too (noindex / robots.txt)
+        $ignoreRobots = !array_key_exists('ignore_robots', $settings) || (bool) $settings['ignore_robots'];
+        if ($ignoreRobots) {
+            $disallow = [];
+        }
 
         // Phase 1: fetch pages until the queue is empty or time is up
         while (microtime(true) < $deadline - 4) {
@@ -70,7 +75,7 @@ final class Crawler
             $db->update('crawl_urls', ['status' => 'skipped'], 'id = :id', ['id' => $next['id']]); // provisional; updated below
             $url = (string) $next['url'];
             try {
-                $outcome = self::fetchPage($url, $userAgent, $timeout);
+                $outcome = self::fetchPage($url, $userAgent, $timeout, !$ignoreRobots);
             } catch (\Throwable $e) {
                 $outcome = ['status' => 'failed', 'error' => $e->getMessage(), 'http' => 0];
             }
@@ -138,15 +143,21 @@ final class Crawler
 
         $stats = Indexer::sourceStats($sourceId);
         $failed = (int) $db->fetchColumn("SELECT COUNT(*) FROM crawl_urls WHERE job_id = ? AND status = 'failed'", [$jobId]);
+        $skipped = (int) $db->fetchColumn("SELECT COUNT(*) FROM crawl_urls WHERE job_id = ? AND status = 'skipped'", [$jobId]);
+        $explanation = $stats['documents'] > 0 ? null : self::explainFailure($jobId);
         $db->update('knowledge_sources', [
             'status' => $stats['documents'] > 0 ? 'ready' : 'error',
-            'error_message' => $stats['documents'] > 0 ? null : 'No readable pages were found on this website.',
-            'stats' => json_encode(array_merge($stats, ['pages_failed' => $failed, 'pages_found' => (int) $db->fetchColumn('SELECT COUNT(*) FROM crawl_urls WHERE job_id = ?', [$jobId])])),
+            'error_message' => $explanation,
+            'stats' => json_encode(array_merge($stats, ['pages_failed' => $failed, 'pages_skipped' => $skipped, 'pages_found' => (int) $db->fetchColumn('SELECT COUNT(*) FROM crawl_urls WHERE job_id = ?', [$jobId]), 'job_id' => $jobId])),
             'last_synced_at' => now(), 'updated_at' => now(),
         ], 'id = :id', ['id' => $sourceId]);
-        $db->update('agents', ['last_trained_at' => now(), 'updated_at' => now()], 'id = :id', ['id' => $source['agent_id']]);
-        Usage::increment((int) $source['tenant_id'], (int) $source['agent_id'], 'pages_crawled', (int) ($state['pages_indexed'] ?? 0));
-        JobQueue::complete($jobId, array_merge($state, $stats), 'Scanned ' . $stats['documents'] . ' pages, ' . $stats['chunks'] . ' knowledge chunks ready.');
+        if ($stats['documents'] > 0) {
+            $db->update('agents', ['last_trained_at' => now(), 'updated_at' => now()], 'id = :id', ['id' => $source['agent_id']]);
+            Usage::increment((int) $source['tenant_id'], (int) $source['agent_id'], 'pages_crawled', (int) ($state['pages_indexed'] ?? 0));
+            JobQueue::complete($jobId, array_merge($state, $stats), 'Scanned ' . $stats['documents'] . ' pages, ' . $stats['chunks'] . ' knowledge chunks ready.');
+        } else {
+            JobQueue::fail($jobId, (string) $explanation);
+        }
         return true;
     }
 
@@ -162,7 +173,7 @@ final class Crawler
         $userAgent = (string) Settings::get('crawler_user_agent', 'VoiceAgentBot/1.0');
         $sitemaps = [];
         try {
-            $robots = Http::get($origin . '/robots.txt', ['timeout' => 8, 'user_agent' => $userAgent, 'public_only' => true, 'max_bytes' => 200000]);
+            $robots = Http::get($origin . '/robots.txt', ['timeout' => 8, 'user_agent' => $userAgent, 'public_only' => true, 'max_bytes' => 200000, 'ipv4' => true]);
             if ($robots->ok() && str_contains($robots->contentType(), 'text')) {
                 $parsed = self::parseRobots($robots->body);
                 $state['disallow'] = $parsed['disallow'];
@@ -200,7 +211,7 @@ final class Crawler
             return [];
         }
         try {
-            $res = Http::get($url, ['timeout' => 12, 'user_agent' => $userAgent, 'public_only' => true, 'max_bytes' => 5_000_000]);
+            $res = Http::get($url, ['timeout' => 12, 'user_agent' => $userAgent, 'public_only' => true, 'max_bytes' => 5_000_000, 'ipv4' => true]);
         } catch (\Throwable) {
             return [];
         }
@@ -270,17 +281,32 @@ final class Crawler
         return ['disallow' => array_slice(array_unique($disallow), 0, 200), 'sitemaps' => array_slice(array_unique($sitemaps), 0, 10)];
     }
 
-    private static function fetchPage(string $url, string $userAgent, int $timeout): array
+    private const BROWSER_UA = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36';
+
+    private static function fetchPage(string $url, string $userAgent, int $timeout, bool $respectNoindex = false): array
     {
-        $res = Http::get($url, [
-            'timeout' => $timeout, 'user_agent' => $userAgent, 'public_only' => true, 'max_bytes' => 4_000_000,
+        $options = [
+            'timeout' => $timeout, 'user_agent' => $userAgent, 'public_only' => true, 'max_bytes' => 4_000_000, 'ipv4' => true,
             'headers' => ['Accept' => 'text/html,application/xhtml+xml,application/pdf;q=0.8,*/*;q=0.5', 'Accept-Language' => 'en,*;q=0.5'],
-        ]);
+        ];
+        $res = Http::get($url, $options);
+        // Some firewalls reject unknown bots or drop the connection: retry once looking like a regular browser
+        if ($res->error !== '' || in_array($res->status, [0, 401, 403, 406, 409, 429, 503], true)) {
+            $options['user_agent'] = self::BROWSER_UA;
+            $options['headers'] = array_merge($options['headers'], [
+                'Accept' => 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8',
+                'Accept-Language' => 'en-US,en;q=0.9', 'Upgrade-Insecure-Requests' => '1', 'Sec-Fetch-Mode' => 'navigate', 'Sec-Fetch-Dest' => 'document',
+            ]);
+            $retry = Http::get($url, $options);
+            if ($retry->error === '' && $retry->status > 0 && $retry->status < 400) {
+                $res = $retry;
+            }
+        }
         if ($res->error !== '') {
-            return ['status' => 'failed', 'error' => $res->error, 'http' => $res->status];
+            return ['status' => 'failed', 'error' => self::describeTransportError($res->error), 'http' => $res->status];
         }
         if ($res->status >= 400 || $res->status === 0) {
-            return ['status' => 'failed', 'error' => 'HTTP ' . $res->status, 'http' => $res->status];
+            return ['status' => 'failed', 'error' => self::describeHttpError($res->status), 'http' => $res->status];
         }
         $type = $res->contentType();
         if ($type === 'application/pdf' || str_ends_with(strtolower((string) parse_url($url, PHP_URL_PATH)), '.pdf')) {
@@ -300,13 +326,64 @@ final class Crawler
             return ['status' => 'skipped', 'error' => 'Not an HTML page (' . $type . ')', 'http' => $res->status];
         }
         $page = HtmlExtractor::extract($res->body, $res->url ?: $url);
-        if ($page['noindex']) {
+        if ($page['noindex'] && $respectNoindex) {
             return ['status' => 'skipped', 'error' => 'Page is marked noindex', 'http' => $res->status];
         }
         if (mb_strlen($page['text']) < 80) {
             return ['status' => 'skipped', 'error' => 'Page has no readable text', 'http' => $res->status];
         }
         return ['status' => 'done', 'http' => $res->status, 'page' => $page];
+    }
+
+    private static function describeTransportError(string $error): string
+    {
+        $e = strtolower($error);
+        if (str_contains($e, 'reset') || str_contains($e, 'refused') || str_contains($e, 'timed out') || str_contains($e, 'timeout')) {
+            return 'Connection blocked or timed out (' . $error . ')';
+        }
+        if (str_contains($e, 'ssl') || str_contains($e, 'certificate')) {
+            return 'SSL problem (' . $error . ')';
+        }
+        if (str_contains($e, 'resolve')) {
+            return 'Domain could not be resolved';
+        }
+        return $error;
+    }
+
+    private static function describeHttpError(int $status): string
+    {
+        return match (true) {
+            $status === 401 || $status === 403 => 'HTTP ' . $status . ' - the website blocks automated visitors',
+            $status === 404 => 'HTTP 404 - page not found',
+            $status === 429 => 'HTTP 429 - the website rate-limited the scan',
+            $status === 503 => 'HTTP 503 - the website is protected or temporarily unavailable',
+            $status === 0 => 'No response from the website',
+            default => 'HTTP ' . $status,
+        };
+    }
+
+    /** Human explanation of why a scan produced no pages, based on the recorded failures. */
+    private static function explainFailure(int $jobId): string
+    {
+        $db = DB::instance();
+        $rows = $db->fetchAll("SELECT status, COALESCE(error, '') AS error, COUNT(*) AS n FROM crawl_urls WHERE job_id = ? AND status IN ('failed','skipped') GROUP BY status, error ORDER BY n DESC LIMIT 3", [$jobId]);
+        if (!$rows) {
+            return 'No readable pages were found on this website.';
+        }
+        $top = (string) $rows[0]['error'];
+        $count = (int) $rows[0]['n'];
+        $hint = match (true) {
+            str_contains($top, 'blocks automated') || str_contains($top, 'HTTP 503') || str_contains($top, 'Connection blocked') || str_contains($top, 'No response') =>
+                'The website did not let our scanner in. Ask your hosting or security provider (for example Cloudflare, Wordfence or a firewall) to allow the "VoiceAgentBot" user agent, or add the content as specific pages, uploaded documents or text instead.',
+            str_contains($top, 'no readable text') =>
+                'The pages seem to be rendered with JavaScript only, so their text is not in the HTML. Upload documents or paste the content as text instead.',
+            str_contains($top, 'noindex') => 'The pages are hidden from search engines (noindex). Re-scan with "Include pages hidden from search engines" enabled.',
+            str_contains($top, 'Not an HTML') => 'The address does not return web pages.',
+            str_contains($top, 'HTTP 404') => 'The address returns "page not found". Check the URL.',
+            str_contains($top, 'resolved') => 'The domain name could not be resolved. Check the address.',
+            default => 'Try again later, or add specific pages, documents or text instead.',
+        };
+        return 'No readable pages were found. ' . $count . ' page' . ($count === 1 ? '' : 's') . ' failed with: ' . $top . '. ' . $hint;
     }
 
     private static function addUrl(int $jobId, string $url, int $depth): bool
