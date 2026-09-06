@@ -66,6 +66,12 @@ final class Chunker
                 $flush();
             }
             if ($buffer['content'] === '') {
+                // A small section right after a split block: attach it to the previous chunk when it fits
+                $last = count($chunks) - 1;
+                if ($last >= 0 && mb_strlen($text) < 200 && mb_strlen($chunks[$last]['content']) + mb_strlen($text) + 2 <= $size) {
+                    $chunks[$last]['content'] .= "\n\n" . $text;
+                    continue;
+                }
                 $buffer['heading'] = $heading;
                 $buffer['content'] = $text;
             } else {
