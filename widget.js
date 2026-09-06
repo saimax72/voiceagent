@@ -769,7 +769,9 @@
     var rec = new SR();
     rec.lang = this.speechLang(); rec.interimResults = true; rec.continuous = false; rec.maxAlternatives = 1;
     var finalText = '';
-    rec.onstart = function () { self.setState('listening'); self.setVoiceStatus(self.w.listening_text || 'Listening...', 'Speak now, I am listening'); self.playTone(880, .08); self.startLevelMeter(); };
+    // Note: no second microphone capture here. In Chrome, opening getUserMedia while SpeechRecognition runs
+    // makes the recognizer abort silently, so the orb uses a CSS pulse instead of a live level meter.
+    rec.onstart = function () { self.setState('listening'); self.setVoiceStatus(self.w.listening_text || 'Listening...', 'Speak now, I am listening'); self.playTone(880, .08); self.container.style.setProperty('--va-level', '0.35'); };
     rec.onresult = function (e) {
       var interim = '';
       for (var i = e.resultIndex; i < e.results.length; i++) {
@@ -795,7 +797,7 @@
       self.recognition = null;
       var text = finalText.trim();
       if (text) { self.setState('thinking'); self.send(text, 'voice'); }
-      else if (self.state === 'listening') { self.setState('idle'); self.setVoiceStatus(self.w.mic_text || 'Tap to talk', 'I did not catch that. Tap to try again.'); }
+      else if (self.state === 'listening' || self.state === 'idle') { self.setState('idle'); self.setVoiceStatus(self.w.mic_text || 'Tap to talk', 'I did not catch that. Tap the circle and speak clearly, or type instead.'); }
     };
     this.recognition = rec;
     try { rec.start(); } catch (e) { this.recognition = null; this.setVoiceStatus('Could not start the microphone', ''); return; }
@@ -841,7 +843,7 @@
       self.recorder = rec;
       self.cancelledRecording = false;
       rec.start(250);
-      self.setState('listening'); self.setVoiceStatus(self.w.listening_text || 'Listening...', 'Speak now, then tap the circle when you are done');
+      self.setState('listening'); self.setVoiceStatus(self.w.listening_text || 'Listening...', 'Speak now, then tap the circle when you are done (or pause and I will answer)');
       self.playTone(880, .08);
       self.startLevelMeter(stream, true);
       self.autoStopTimer = setTimeout(function () { self.stopListening(true); }, 45000);
@@ -873,6 +875,7 @@
         return;
       }
       this.audioCtx = this.audioCtx || new AC();
+      if (this.audioCtx.state === 'suspended') { try { this.audioCtx.resume(); } catch (e) { /* ignore */ } }
       var source = this.audioCtx.createMediaStreamSource(stream);
       var analyser = this.audioCtx.createAnalyser(); analyser.fftSize = 512;
       source.connect(analyser);
