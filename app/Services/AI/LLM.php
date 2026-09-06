@@ -11,9 +11,9 @@ use App\Services\Settings;
 final class LLM
 {
     public const ANTHROPIC_MODELS = [
-        'claude-opus-5' => 'Claude Opus 5 (most capable, default)',
-        'claude-sonnet-5' => 'Claude Sonnet 5 (fast, great value)',
-        'claude-haiku-4-5' => 'Claude Haiku 4.5 (fastest, lowest cost)',
+        'claude-sonnet-5' => 'Claude Sonnet 5 (fast, recommended for voice - default)',
+        'claude-haiku-4-5' => 'Claude Haiku 4.5 (fastest replies, lowest cost)',
+        'claude-opus-5' => 'Claude Opus 5 (most capable, slower)',
         'claude-opus-4-8' => 'Claude Opus 4.8',
         'claude-sonnet-4-6' => 'Claude Sonnet 4.6',
     ];
@@ -82,7 +82,7 @@ final class LLM
                 if ($key === '') {
                     throw new \RuntimeException('Anthropic API key is not configured. Add it under Admin > Settings > AI providers.');
                 }
-                return new AnthropicProvider($key, (string) Settings::get('anthropic_model', 'claude-opus-5'), Settings::bool('anthropic_fallbacks'));
+                return new AnthropicProvider($key, (string) Settings::get('anthropic_model', 'claude-sonnet-5'), Settings::bool('anthropic_fallbacks'));
         }
     }
 
@@ -112,7 +112,7 @@ final class LLM
         $groups = [];
         if (self::isConfigured('anthropic')) {
             $models = self::ANTHROPIC_MODELS;
-            $default = (string) Settings::get('anthropic_model', 'claude-opus-5');
+            $default = (string) Settings::get('anthropic_model', 'claude-sonnet-5');
             if ($default !== '' && !isset($models[$default])) {
                 $models = [$default => $default . ' (platform default)'] + $models;
             }

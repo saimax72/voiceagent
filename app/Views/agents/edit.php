@@ -198,7 +198,7 @@ $extraJson = json_encode($extraLangs, JSON_UNESCAPED_UNICODE | JSON_HEX_APOS | J
         </select>
         <div class="form-hint">Only providers configured by the platform administrator are listed. Claude Opus 5 gives the most accurate, natural answers; smaller models are faster and cheaper.</div>
       </div>
-      <div class="form-group"><label class="form-label">Reasoning effort</label><select class="form-select" name="effort"><?php foreach (['low' => 'Fast (recommended for chat)', 'medium' => 'Balanced', 'high' => 'Thorough (slower)'] as $k => $l): ?><option value="<?= $k ?>" <?= $o('effort') === $k ? 'selected' : '' ?>><?= $l ?></option><?php endforeach; ?></select><div class="form-hint">Higher effort lets the model think longer before answering (Claude models).</div></div>
+      <div class="form-group"><label class="form-label">Response speed</label><select class="form-select" name="effort"><?php foreach (['low' => 'Fast - no extended thinking (recommended for voice)', 'medium' => 'Balanced - brief thinking before answering', 'high' => 'Thorough - longer thinking, slowest'] as $k => $l): ?><option value="<?= $k ?>" <?= $o('effort') === $k ? 'selected' : '' ?>><?= $l ?></option><?php endforeach; ?></select><div class="form-hint">Fast answers start within about a second on Claude Sonnet 5 or Haiku 4.5. Opus 5 is the most capable but noticeably slower for spoken conversations.</div></div>
     </div>
   </div>
 

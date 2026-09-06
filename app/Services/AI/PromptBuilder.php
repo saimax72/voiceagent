@@ -13,6 +13,21 @@ use App\Services\Agents;
  */
 final class PromptBuilder
 {
+    /**
+     * Two blocks: [stable instructions (cacheable), per-request context (date, page, knowledge)].
+     * @return string[]
+     */
+    public static function systemBlocks(array $agent, array $chunks, array $context = []): array
+    {
+        $full = self::system($agent, $chunks, $context);
+        $marker = "\n\nCurrent date and time: ";
+        $pos = strpos($full, $marker);
+        if ($pos === false) {
+            return [$full];
+        }
+        return [substr($full, 0, $pos), substr($full, $pos + 2)];
+    }
+
     public static function system(array $agent, array $chunks, array $context = []): string
     {
         $vars = Agents::templateVariables($agent, $context);
@@ -88,6 +103,10 @@ final class PromptBuilder
             $rules[] = 'Format for a compact chat window: plain text with short paragraphs. You may use simple bullet points (one item per line starting with "- ") for lists of three or more items. No headings, tables or code blocks.';
         }
         $rules[] = self::languageRule($agent);
+        if (($agent['effort'] ?? 'low') === 'low') {
+            // Guidance recommended when extended thinking is switched off for speed
+            $rules[] = 'When you use a tool, you may say a brief sentence first. If no tool can express what the visitor asked for, say so instead of guessing. Do not include internal or system XML tags in your response.';
+        }
         $title = $customMode ? 'Operating rules (always apply, in addition to the instructions above)' : 'Rules';
         return $title . ":\n- " . implode("\n- ", $rules);
     }

@@ -33,7 +33,7 @@ final class Settings
             // LLM
             'llm_provider' => 'anthropic',
             'anthropic_api_key' => '',
-            'anthropic_model' => 'claude-opus-5',
+            'anthropic_model' => 'claude-sonnet-5',
             'anthropic_fallbacks' => '1',
             'openai_api_key' => '',
             'openai_model' => 'gpt-4.1-mini',

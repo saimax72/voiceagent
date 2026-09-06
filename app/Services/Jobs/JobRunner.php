@@ -77,6 +77,11 @@ final class JobRunner
         $db->query('DELETE FROM password_resets WHERE expires_at < ?', [now()]);
         $db->query('DELETE FROM rate_limits WHERE reset_at < ?', [time() - 3600]);
         $db->query('DELETE FROM activity_logs WHERE created_at < ?', [gmdate('Y-m-d H:i:s', time() - 180 * 86400)]);
+        try {
+            $db->query('DELETE FROM embedding_cache WHERE created_at < ?', [gmdate('Y-m-d H:i:s', time() - 60 * 86400)]);
+        } catch (\Throwable) {
+            // table may not exist yet
+        }
         // Expire old TTS cache files
         foreach (glob(APP_ROOT . '/storage/cache/tts/*.mp3') ?: [] as $file) {
             if (filemtime($file) < time() - 30 * 86400) {

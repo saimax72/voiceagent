@@ -80,6 +80,34 @@ final class Embeddings
         return $vectors;
     }
 
+    /**
+     * Embed a search query, served from the database cache when the same question was asked before.
+     * @return float[]
+     */
+    public static function embedQuery(string $text): array
+    {
+        $normalized = mb_strtolower(trim(preg_replace('/\s+/', ' ', $text) ?? $text));
+        $signature = self::signature();
+        $hash = sha1($signature . '|' . $normalized);
+        try {
+            $cached = \App\Core\DB::instance()->fetchColumn('SELECT embedding FROM embedding_cache WHERE hash = ? LIMIT 1', [$hash]);
+            if (is_string($cached) && $cached !== '') {
+                return self::unpack($cached);
+            }
+        } catch (\Throwable) {
+            // cache table missing: fall through to a live call
+        }
+        $vector = self::embed([$text], 'query')[0] ?? [];
+        if ($vector) {
+            try {
+                \App\Core\DB::instance()->query('INSERT IGNORE INTO embedding_cache (hash, model, embedding, created_at) VALUES (?, ?, ?, ?)', [$hash, $signature, self::pack($vector), now()]);
+            } catch (\Throwable) {
+                // never fail a request because the cache could not be written
+            }
+        }
+        return $vector;
+    }
+
     private static function embedOpenAI(array $batch): array
     {
         $response = Http::postJson('https://api.openai.com/v1/embeddings', [

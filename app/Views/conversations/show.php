@@ -17,7 +17,7 @@
               <?php if ($m['modality'] === 'voice'): ?><span class="badge badge-primary" style="padding:1px 7px">voice</span><?php endif; ?>
               <span><?= e(format_date($m['created_at'], 'H:i:s')) ?></span>
               <?php if ($m['role'] === 'assistant'): ?>
-                <?php if ((int) $m['latency_ms'] > 0): ?><span><?= round($m['latency_ms'] / 1000, 1) ?>s</span><?php endif; ?>
+                <?php if ((int) $m['latency_ms'] > 0): ?><span title="total reply time<?= !empty($m['meta']['first_token_ms']) ? ', first words after ' . round($m['meta']['first_token_ms'] / 1000, 1) . 's' : '' ?>"><?= round($m['latency_ms'] / 1000, 1) ?>s<?= !empty($m['meta']['first_token_ms']) ? ' (first words ' . round($m['meta']['first_token_ms'] / 1000, 1) . 's)' : '' ?></span><?php endif; ?>
                 <?php if ((int) $m['tokens_input'] > 0): ?><span title="tokens in / out"><?= (int) $m['tokens_input'] ?>/<?= (int) $m['tokens_output'] ?> tok</span><?php endif; ?>
                 <?php if (!empty($m['meta']['model'])): ?><span><?= e($m['meta']['model']) ?></span><?php endif; ?>
                 <?php if ($m['feedback'] === 1 || $m['feedback'] === '1'): ?><span class="text-success">&#128077; helpful</span><?php elseif ($m['feedback'] === -1 || $m['feedback'] === '-1'): ?><span class="text-danger">&#128078; not helpful</span><?php endif; ?>

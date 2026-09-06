@@ -54,12 +54,14 @@ final class ChatEngine
             }
         }
         $chunks = [];
+        $retrievalStart = microtime(true);
         try {
             $chunks = Retriever::search((int) $agent['id'], $retrievalQuery, Settings::int('retrieval_top_k', 6));
         } catch (\Throwable $e) {
             Logger::error('Retrieval failed: ' . $e->getMessage());
         }
-        $emit('meta', ['sources_found' => count($chunks)]);
+        $retrievalMs = (int) round((microtime(true) - $retrievalStart) * 1000);
+        $emit('meta', ['sources_found' => count($chunks), 'retrieval_ms' => $retrievalMs]);
 
         $messages = [];
         $lastRole = null;
@@ -84,14 +86,17 @@ final class ChatEngine
             $messages[] = ['role' => 'user', 'content' => $userText];
         }
 
-        $system = PromptBuilder::system($agent, $chunks, ['modality' => $modality, 'page_url' => $context['page_url'] ?? null]);
+        $system = PromptBuilder::systemBlocks($agent, $chunks, ['modality' => $modality, 'page_url' => $context['page_url'] ?? null]);
         $tools = PromptBuilder::tools($agent);
+        $effort = in_array($agent['effort'] ?? '', ['low', 'medium', 'high'], true) ? $agent['effort'] : (string) Settings::get('llm_effort', 'low');
         $request = [
             'system' => $system,
             'messages' => $messages,
             'tools' => $tools,
             'max_tokens' => max(256, Settings::int('llm_max_tokens', 1024)),
-            'effort' => in_array($agent['effort'] ?? '', ['low', 'medium', 'high'], true) ? $agent['effort'] : (string) Settings::get('llm_effort', 'low'),
+            'effort' => $effort,
+            // "Fast" = no extended thinking: first words arrive much sooner, which matters for voice
+            'thinking' => $effort === 'low' ? 'disabled' : 'adaptive',
         ];
         $model = LLM::modelFor($agent);
         if ($model) {
@@ -106,13 +111,17 @@ final class ChatEngine
         $error = null;
         $modelUsed = '';
         $toolLog = [];
+        $firstTokenMs = 0;
 
         try {
             $provider = LLM::providerFor($agent);
             $round = 0;
             while (true) {
                 $round++;
-                $result = $provider->stream($request, static function (string $delta) use ($emit, &$fullText): void {
+                $result = $provider->stream($request, static function (string $delta) use ($emit, &$fullText, &$firstTokenMs, $start): void {
+                    if ($firstTokenMs === 0) {
+                        $firstTokenMs = (int) round((microtime(true) - $start) * 1000);
+                    }
                     $fullText .= $delta;
                     $emit('delta', ['text' => $delta]);
                 });
@@ -192,7 +201,7 @@ final class ChatEngine
         $latency = (int) round((microtime(true) - $start) * 1000);
         $assistantId = Conversations::addMessage($conversation, 'assistant', $fullText, $modality, [
             'sources' => json_encode($sources, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE),
-            'meta' => json_encode(['model' => $modelUsed, 'tools' => $toolLog, 'error' => $error, 'retrieved' => count($chunks)], JSON_UNESCAPED_UNICODE),
+            'meta' => json_encode(['model' => $modelUsed, 'tools' => $toolLog, 'error' => $error, 'retrieved' => count($chunks), 'retrieval_ms' => $retrievalMs, 'first_token_ms' => $firstTokenMs], JSON_UNESCAPED_UNICODE),
             'tokens_input' => $tokensIn, 'tokens_output' => $tokensOut, 'latency_ms' => $latency, 'is_unanswered' => $unanswered ? 1 : 0,
         ]);
 
@@ -204,7 +213,7 @@ final class ChatEngine
             $db->query('UPDATE agents SET messages_count = messages_count + 1 WHERE id = ?', [(int) $agent['id']]);
         }
 
-        return ['message_id' => $assistantId, 'text' => $fullText, 'sources' => $sources, 'lead_id' => $leadId, 'unanswered' => $unanswered, 'error' => $error];
+        return ['message_id' => $assistantId, 'text' => $fullText, 'sources' => $sources, 'lead_id' => $leadId, 'unanswered' => $unanswered, 'error' => $error, 'timing' => ['retrieval_ms' => $retrievalMs, 'first_token_ms' => $firstTokenMs, 'total_ms' => $latency]];
     }
 
     private static function looksUnanswered(string $text): bool

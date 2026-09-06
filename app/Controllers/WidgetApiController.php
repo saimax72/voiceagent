@@ -184,6 +184,7 @@ final class WidgetApiController
             'lead_saved' => $result['lead_id'] > 0,
             'unanswered' => $result['unanswered'],
             'error' => $result['error'] !== null,
+            'timing' => $result['timing'] ?? null,
         ];
     }
 

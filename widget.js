@@ -608,9 +608,13 @@
           bubble.innerHTML = md(full);
           self.scroll();
           if (speakEnabled) {
-            // speak completed sentences as they arrive
+            // speak completed sentences as they arrive; the very first segment may be a clause so audio starts sooner
             var pending = full.slice(spoken);
             var m = pending.match(/^[\s\S]*?[.!?](?=\s|$)/);
+            if (!m && spoken === 0 && pending.length > 70) {
+              var cut = Math.max(pending.lastIndexOf(', '), pending.lastIndexOf('; '), pending.lastIndexOf(': '));
+              if (cut > 30) { m = [pending.slice(0, cut + 1)]; }
+            }
             while (m && m[0].trim().length > 0) {
               var sentence = m[0];
               spoken += sentence.length;
@@ -890,7 +894,7 @@
         self.container.style.setProperty('--va-level', level.toFixed(2));
         if (autoStop) {
           if (level > 0.12) { lastLoud = Date.now(); spoke = true; }
-          else if (spoke && Date.now() - lastLoud > 1800) { self.stopListening(true); }
+          else if (spoke && Date.now() - lastLoud > 1200) { self.stopListening(true); }
           else if (!spoke && Date.now() - lastLoud > 8000) { self.stopListening(false); self.setVoiceStatus(self.w.mic_text || 'Tap to talk', 'I did not hear anything. Tap to try again.'); }
         }
       }, 80);

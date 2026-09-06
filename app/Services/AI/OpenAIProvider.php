@@ -31,7 +31,8 @@ final class OpenAIProvider implements LLMProvider
     {
         $messages = [];
         if (!empty($request['system'])) {
-            $messages[] = ['role' => 'system', 'content' => (string) $request['system']];
+            $system = is_array($request['system']) ? implode("\n\n", array_filter($request['system'], static fn($b) => trim((string) $b) !== '')) : (string) $request['system'];
+            $messages[] = ['role' => 'system', 'content' => $system];
         }
         foreach ($request['messages'] ?? [] as $m) {
             $content = $m['content'];

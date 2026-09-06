@@ -49,13 +49,27 @@ final class AnthropicProvider implements LLMProvider
             'messages' => $this->normalizeMessages($request['messages'] ?? [], $request['documents'] ?? []),
         ];
         if (!empty($request['system'])) {
-            $body['system'] = [['type' => 'text', 'text' => (string) $request['system'], 'cache_control' => ['type' => 'ephemeral']]];
+            // First block = stable instructions (cached prefix); further blocks = per-request context (retrieved knowledge)
+            $blocks = is_array($request['system']) ? array_values(array_filter($request['system'], static fn($b) => trim((string) $b) !== '')) : [(string) $request['system']];
+            $body['system'] = [];
+            foreach ($blocks as $i => $text) {
+                $block = ['type' => 'text', 'text' => (string) $text];
+                if ($i === 0) {
+                    $block['cache_control'] = ['type' => 'ephemeral'];
+                }
+                $body['system'][] = $block;
+            }
         }
         if (!empty($request['tools'])) {
             $body['tools'] = array_values($request['tools']);
         }
         if (!empty($request['effort']) && $this->supportsEffort($model)) {
             $body['output_config'] = ['effort' => (string) $request['effort']];
+        }
+        // Latency-sensitive chat: switch extended thinking off where the model allows it
+        // (Opus 5 / Sonnet 5 / 4.6+ accept "disabled"; Fable/Mythos reject it; Haiku has no thinking unless budgeted)
+        if (($request['thinking'] ?? '') === 'disabled' && preg_match('/claude-(opus-5|sonnet-5|opus-4-[678]|sonnet-4-6)/i', $model) && ($body['output_config']['effort'] ?? 'low') !== 'max' && ($body['output_config']['effort'] ?? 'low') !== 'xhigh') {
+            $body['thinking'] = ['type' => 'disabled'];
         }
         if ($this->fallbacks && $this->supportsFallbacks($model)) {
             $body['fallbacks'] = 'default';

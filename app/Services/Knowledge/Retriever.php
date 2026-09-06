@@ -105,8 +105,7 @@ final class Retriever
         if ($total === 0) {
             return [];
         }
-        $vectors = Embeddings::embed([$query], 'query');
-        $q = Embeddings::normalize($vectors[0] ?? []);
+        $q = Embeddings::normalize(Embeddings::embedQuery($query));
         if ($q === []) {
             return [];
         }
