@@ -12,8 +12,7 @@ use App\Services\Agents;
 use App\Services\AI\Speech;
 use App\Services\Jobs\JobQueue;
 use App\Services\Knowledge\Crawler;
-use App\Services\Plans;
-use App\Services\Settings;
+use App\Services\Knowledge\KnowledgeImport;
 use App\Services\Tenants;
 
 /**
@@ -57,6 +56,7 @@ final class OnboardingController
             'languages' => \App\Core\App::languages(),
             'voices' => Speech::voiceOptions(),
             'ttsDefault' => Speech::ttsMode($agent ?? ['tts_provider' => 'auto'], true),
+            'limits' => ['documents' => KnowledgeImport::documentLimit($tenant), 'documents_used' => $agent ? KnowledgeImport::documentsUsed((int) $agent['id']) : 0],
         ], 'layouts/app');
     }
 
@@ -84,30 +84,13 @@ final class OnboardingController
         }
         DB::instance()->update('tenants', ['website_url' => $normalized, 'updated_at' => now()], 'id = :id', ['id' => $tenantId]);
         if ($normalized) {
-            $this->startScan($agent, $normalized, $tenant);
+            try {
+                KnowledgeImport::addWebsite($agent, $tenant, $normalized);
+            } catch (\RuntimeException $e) {
+                flash('error', $e->getMessage());
+            }
         }
         return redirect('/onboarding?step=2');
-    }
-
-    private function startScan(array $agent, string $url, array $tenant): void
-    {
-        $db = DB::instance();
-        $existing = $db->fetch('SELECT * FROM knowledge_sources WHERE agent_id = ? AND type = \'website\' LIMIT 1', [(int) $agent['id']]);
-        $maxPages = min(Plans::limit($tenant, 'pages_per_agent'), Settings::int('crawler_max_pages_default', 100));
-        $now = now();
-        if ($existing) {
-            $db->update('knowledge_sources', ['url' => $url, 'status' => 'pending', 'settings' => json_encode(['max_pages' => $maxPages]), 'updated_at' => $now], 'id = :id', ['id' => $existing['id']]);
-            $sourceId = (int) $existing['id'];
-        } else {
-            $sourceId = $db->insert('knowledge_sources', [
-                'tenant_id' => (int) $agent['tenant_id'], 'agent_id' => (int) $agent['id'], 'type' => 'website',
-                'title' => Str::host($url), 'url' => $url, 'status' => 'pending',
-                'settings' => json_encode(['max_pages' => $maxPages]), 'created_at' => $now, 'updated_at' => $now,
-            ]);
-        }
-        if (!JobQueue::activeForAgent((int) $agent['id'])) {
-            JobQueue::push((int) $agent['tenant_id'], (int) $agent['id'], 'crawl_website', ['source_id' => $sourceId, 'max_pages' => $maxPages]);
-        }
     }
 
     /** Step 2: name, personality, language and voice. */
@@ -137,6 +120,14 @@ final class OnboardingController
             'greeting_message' => $d['greeting_message'] ?: Agents::defaultGreeting((string) ($d['business_name'] ?: '')),
             'widget_config' => json_encode($widget),
         ]);
+        // Optional knowledge submitted with the agent (documents, FAQs, custom information, pages)
+        $import = KnowledgeImport::importFromRequest(Agents::find((int) $agent['id'], (int) $tenant['id']) ?? $agent, $tenant, $request);
+        foreach ($import['errors'] as $error) {
+            flash('error', $error);
+        }
+        if ($import['added']) {
+            flash('success', 'The assistant is learning ' . KnowledgeImport::summary($import) . ' in the background.');
+        }
         return redirect('/agents/' . $agent['id'] . '/customize?onboarding=1');
     }
 

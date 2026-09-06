@@ -8,7 +8,6 @@ use App\Core\DB;
 use App\Core\Request;
 use App\Core\Response;
 use App\Core\Session;
-use App\Core\Str;
 use App\Core\Validator;
 use App\Services\Agents;
 use App\Services\AI\LLM;
@@ -16,8 +15,8 @@ use App\Services\AI\Speech;
 use App\Services\Jobs\JobQueue;
 use App\Services\Knowledge\Crawler;
 use App\Services\Knowledge\Indexer;
+use App\Services\Knowledge\KnowledgeImport;
 use App\Services\Plans;
-use App\Services\Settings;
 use App\Services\Tenants;
 
 final class AgentController
@@ -39,7 +38,12 @@ final class AgentController
             flash('error', 'You have reached the number of agents included in your plan. Upgrade to add more.');
             return redirect('/billing');
         }
-        return view('agents/create', ['title' => 'New agent', 'personas' => Agents::PERSONAS, 'languages' => App::languages()], 'layouts/app');
+        return view('agents/create', [
+            'title' => 'New agent',
+            'personas' => Agents::PERSONAS,
+            'languages' => App::languages(),
+            'limits' => ['documents' => KnowledgeImport::documentLimit($tenant), 'documents_used' => 0],
+        ], 'layouts/app');
     }
 
     public function store(Request $request): Response
@@ -71,17 +75,30 @@ final class AgentController
             'lead_notify_email' => current_user()['email'],
         ]);
         Tenants::log($tenantId, auth()->id(), 'agent.created', 'agent', (int) $agent['id']);
+
+        // Knowledge base submitted together with the agent
+        $parts = [];
+        $errors = [];
         if ($url && $request->boolean('scan', true)) {
-            $maxPages = min(Plans::limit($tenant, 'pages_per_agent'), Settings::int('crawler_max_pages_default', 100));
-            $sourceId = DB::instance()->insert('knowledge_sources', [
-                'tenant_id' => $tenantId, 'agent_id' => (int) $agent['id'], 'type' => 'website', 'title' => Str::host($url), 'url' => $url,
-                'status' => 'pending', 'settings' => json_encode(['max_pages' => $maxPages]), 'created_at' => now(), 'updated_at' => now(),
-            ]);
-            JobQueue::push($tenantId, (int) $agent['id'], 'crawl_website', ['source_id' => $sourceId, 'max_pages' => $maxPages]);
-            flash('success', 'Agent created. We are scanning your website now.');
-            return redirect('/agents/' . $agent['id'] . '/knowledge');
+            try {
+                KnowledgeImport::addWebsite($agent, $tenant, $url);
+                $parts[] = 'your website';
+            } catch (\RuntimeException $e) {
+                $errors[] = $e->getMessage();
+            }
         }
-        flash('success', 'Agent created. Add some knowledge so it can start answering.');
+        $import = KnowledgeImport::importFromRequest($agent, $tenant, $request);
+        $parts = array_merge($parts, $import['added']);
+        $errors = array_merge($errors, $import['errors']);
+        foreach ($errors as $error) {
+            flash('error', $error);
+        }
+        if ($parts) {
+            $summary = KnowledgeImport::summary(['added' => $parts]);
+            flash('success', 'Agent created. The assistant is now learning ' . $summary . '. This runs in the background and usually takes a few minutes.');
+        } else {
+            flash('success', 'Agent created. Add some knowledge so it can start answering.');
+        }
         return redirect('/agents/' . $agent['id'] . '/knowledge');
     }
 

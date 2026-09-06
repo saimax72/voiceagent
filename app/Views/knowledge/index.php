@@ -74,14 +74,14 @@ $badge = static fn(string $s) => match ($s) { 'ready' => '<span class="badge bad
       <form method="post" action="<?= e(url('/agents/' . $agent['id'] . '/knowledge/website')) ?>" x-show="tab==='website'">
         <?= csrf_field() ?>
         <div class="form-group"><label class="form-label">Website address</label><input class="form-control" name="url" value="<?= e($agent['website_url'] ?? '') ?>" placeholder="https://www.example.com" required></div>
-        <div class="form-group"><label class="form-label">Maximum pages</label><input class="form-control" type="number" name="max_pages" min="1" max="<?= (int) $limits['pages'] ?>" value="<?= (int) min($limits['pages'], 100) ?>"><div class="form-hint">Your plan includes up to <?= format_number($limits['pages']) ?> pages per agent. Sitemaps are used when available.</div></div>
+        <div class="form-group"><label class="form-label">Maximum pages</label><input class="form-control" type="number" name="max_pages" min="1" max="<?= (int) $limits['pages'] ?>" value="<?= (int) $defaultPages ?>"><div class="form-hint">Your plan includes up to <?= format_number($limits['pages']) ?> pages per agent. Sitemaps are used when available.</div></div>
         <div class="form-group"><label class="checkbox"><input type="checkbox" name="restrict_to_path" value="1"> <span>Only scan pages under the given path (e.g. /help/)</span></label></div>
         <button class="btn btn-primary btn-block" type="submit">Scan website</button>
       </form>
 
       <form method="post" action="<?= e(url('/agents/' . $agent['id'] . '/knowledge/upload')) ?>" enctype="multipart/form-data" x-show="tab==='file'" x-cloak>
         <?= csrf_field() ?>
-        <div class="form-group"><label class="form-label">Document</label><input class="form-control" type="file" name="file" accept=".<?= implode(',.', $extensions) ?>" required><div class="form-hint">PDF, Word, PowerPoint, text, Markdown, CSV or HTML. Max <?= e(human_filesize($maxUpload)) ?>. <?= (int) $limits['documents_used'] ?>/<?= (int) $limits['documents'] ?> documents used.</div></div>
+        <div class="form-group"><label class="form-label">Documents</label><input class="form-control" type="file" name="files[]" multiple accept=".<?= implode(',.', $extensions) ?>" required><div class="form-hint">PDF, Word, PowerPoint, text, Markdown, CSV or HTML. Max <?= e(human_filesize($maxUpload)) ?> each; select several files at once. <?= (int) $limits['documents_used'] ?>/<?= (int) $limits['documents'] ?> documents used.</div></div>
         <button class="btn btn-primary btn-block" type="submit">Upload &amp; train</button>
       </form>
 

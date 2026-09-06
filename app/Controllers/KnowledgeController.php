@@ -6,13 +6,12 @@ namespace App\Controllers;
 use App\Core\DB;
 use App\Core\Request;
 use App\Core\Response;
-use App\Core\Str;
 use App\Services\Agents;
 use App\Services\AI\Embeddings;
 use App\Services\Jobs\JobQueue;
-use App\Services\Knowledge\Crawler;
 use App\Services\Knowledge\DocumentExtractor;
 use App\Services\Knowledge\Indexer;
+use App\Services\Knowledge\KnowledgeImport;
 use App\Services\Plans;
 use App\Services\Settings;
 
@@ -32,6 +31,11 @@ final class KnowledgeController
         return $source;
     }
 
+    private function back(array $agent): Response
+    {
+        return redirect('/agents/' . $agent['id'] . '/knowledge');
+    }
+
     public function index(Request $request, string $id): Response
     {
         $agent = $this->agent($id);
@@ -40,56 +44,37 @@ final class KnowledgeController
         $sources = $db->fetchAll('SELECT s.*, (SELECT COUNT(*) FROM knowledge_documents d WHERE d.source_id = s.id AND d.status = \'indexed\') AS docs FROM knowledge_sources s WHERE s.agent_id = ? ORDER BY s.id DESC', [(int) $agent['id']]);
         $jobs = [];
         foreach (JobQueue::activeForAgent((int) $agent['id']) as $job) {
-            $jobs[(int) ($job['payload']['source_id'] ?? 0)] = JobQueue::toArray($job);
-            if (empty($job['payload']['source_id'])) {
+            $sourceId = (int) ($job['payload']['source_id'] ?? 0);
+            if ($sourceId > 0) {
+                $jobs[$sourceId] = JobQueue::toArray($job);
+            } else {
                 $jobs['agent'] = JobQueue::toArray($job);
             }
         }
-        $documents = $db->count('knowledge_sources', 'agent_id = ? AND type IN (\'file\',\'faq\',\'text\',\'url\')', [(int) $agent['id']]);
         return view('knowledge/index', [
             'title' => 'Knowledge - ' . $agent['name'],
             'agent' => $agent,
             'sources' => $sources,
             'jobs' => $jobs,
             'stats' => Indexer::agentStats((int) $agent['id']),
-            'limits' => ['pages' => Plans::limit($tenant, 'pages_per_agent'), 'documents' => Plans::limit($tenant, 'documents_per_agent'), 'documents_used' => $documents],
+            'limits' => ['pages' => Plans::limit($tenant, 'pages_per_agent'), 'documents' => KnowledgeImport::documentLimit($tenant), 'documents_used' => KnowledgeImport::documentsUsed((int) $agent['id'])],
             'embeddings' => Embeddings::available(),
             'maxUpload' => DocumentExtractor::MAX_UPLOAD_BYTES,
             'extensions' => DocumentExtractor::ALLOWED_EXTENSIONS,
+            'defaultPages' => min(Plans::limit($tenant, 'pages_per_agent') ?: 100, Settings::int('crawler_max_pages_default', 100)),
         ], 'layouts/app');
     }
 
     public function addWebsite(Request $request, string $id): Response
     {
         $agent = $this->agent($id);
-        $tenant = current_tenant();
-        $raw = $request->string('url');
-        $url = $raw !== '' ? Crawler::normalize(preg_match('~^https?://~i', $raw) ? $raw : 'https://' . $raw) : null;
-        if ($url === null) {
-            flash('error', 'Please enter a valid website address.');
-            return redirect('/agents/' . $agent['id'] . '/knowledge');
+        try {
+            KnowledgeImport::addWebsite($agent, current_tenant(), $request->string('url'), $request->int('max_pages') ?: null, $request->boolean('restrict_to_path'));
+            flash('success', 'Website scan started. This usually takes a few minutes.');
+        } catch (\RuntimeException $e) {
+            flash('error', $e->getMessage());
         }
-        $limit = Plans::limit($tenant, 'pages_per_agent');
-        $maxPages = max(1, min($limit, $request->int('max_pages', min($limit, Settings::int('crawler_max_pages_default', 100)))));
-        $db = DB::instance();
-        $now = now();
-        $settings = ['max_pages' => $maxPages, 'restrict_to_path' => $request->boolean('restrict_to_path')];
-        $existing = $db->fetch('SELECT * FROM knowledge_sources WHERE agent_id = ? AND type = \'website\' AND url = ? LIMIT 1', [(int) $agent['id'], $url]);
-        if ($existing) {
-            $db->update('knowledge_sources', ['status' => 'pending', 'settings' => json_encode($settings), 'updated_at' => $now], 'id = :id', ['id' => $existing['id']]);
-            $sourceId = (int) $existing['id'];
-        } else {
-            $sourceId = $db->insert('knowledge_sources', [
-                'tenant_id' => (int) $agent['tenant_id'], 'agent_id' => (int) $agent['id'], 'type' => 'website', 'title' => Str::host($url), 'url' => $url,
-                'status' => 'pending', 'settings' => json_encode($settings), 'created_at' => $now, 'updated_at' => $now,
-            ]);
-        }
-        if (empty($agent['website_url'])) {
-            Agents::update((int) $agent['id'], ['website_url' => $url]);
-        }
-        JobQueue::push((int) $agent['tenant_id'], (int) $agent['id'], 'crawl_website', ['source_id' => $sourceId, 'max_pages' => $maxPages]);
-        flash('success', 'Website scan started. This usually takes a few minutes.');
-        return redirect('/agents/' . $agent['id'] . '/knowledge');
+        return $this->back($agent);
     }
 
     public function rescan(Request $request, string $id, string $sourceId): Response
@@ -99,159 +84,83 @@ final class KnowledgeController
         $tenant = current_tenant();
         if ($source['type'] === 'website') {
             $settings = json_field($source['settings']);
-            $maxPages = max(1, min(Plans::limit($tenant, 'pages_per_agent'), (int) ($settings['max_pages'] ?? 100)));
+            $limit = Plans::limit($tenant, 'pages_per_agent');
+            $maxPages = max(1, min($limit > 0 ? $limit : 5000, (int) ($settings['max_pages'] ?? 100)));
             JobQueue::push((int) $agent['tenant_id'], (int) $agent['id'], 'crawl_website', ['source_id' => (int) $source['id'], 'max_pages' => $maxPages]);
         } else {
             JobQueue::push((int) $agent['tenant_id'], (int) $agent['id'], 'process_source', ['source_id' => (int) $source['id']]);
         }
         DB::instance()->update('knowledge_sources', ['status' => 'pending', 'error_message' => null, 'updated_at' => now()], 'id = :id', ['id' => $source['id']]);
         flash('success', 'Re-scan started.');
-        return redirect('/agents/' . $agent['id'] . '/knowledge');
-    }
-
-    private function checkDocumentLimit(array $agent, array $tenant): ?Response
-    {
-        $used = DB::instance()->count('knowledge_sources', 'agent_id = ? AND type IN (\'file\',\'faq\',\'text\',\'url\')', [(int) $agent['id']]);
-        if ($used >= Plans::limit($tenant, 'documents_per_agent')) {
-            flash('error', 'You have reached the number of documents included in your plan for this agent.');
-            return redirect('/agents/' . $agent['id'] . '/knowledge');
-        }
-        return null;
+        return $this->back($agent);
     }
 
     public function upload(Request $request, string $id): Response
     {
         $agent = $this->agent($id);
         $tenant = current_tenant();
-        if ($r = $this->checkDocumentLimit($agent, $tenant)) {
-            return $r;
+        $files = $request->files('files') ?: $request->files('file');
+        if (!$files) {
+            flash('error', 'Please choose at least one file to upload.');
+            return $this->back($agent);
         }
-        $file = $request->file('file');
-        if (!$file || (int) $file['error'] !== UPLOAD_ERR_OK) {
-            flash('error', 'Please choose a file to upload' . (isset($file['error']) && (int) $file['error'] === UPLOAD_ERR_INI_SIZE ? ' (the file is larger than the server allows)' : '') . '.');
-            return redirect('/agents/' . $agent['id'] . '/knowledge');
+        $uploaded = 0;
+        foreach (array_slice($files, 0, 20) as $file) {
+            try {
+                KnowledgeImport::addFile($agent, $tenant, $file);
+                $uploaded++;
+            } catch (\RuntimeException $e) {
+                flash('error', $e->getMessage());
+            }
         }
-        $name = (string) $file['name'];
-        $ext = strtolower(pathinfo($name, PATHINFO_EXTENSION));
-        if (!in_array($ext, DocumentExtractor::ALLOWED_EXTENSIONS, true)) {
-            flash('error', 'Unsupported file type. Allowed: ' . implode(', ', DocumentExtractor::ALLOWED_EXTENSIONS));
-            return redirect('/agents/' . $agent['id'] . '/knowledge');
+        if ($uploaded > 0) {
+            flash('success', $uploaded . ' file' . ($uploaded === 1 ? '' : 's') . ' uploaded. The assistant is learning ' . ($uploaded === 1 ? 'it' : 'them') . ' now.');
         }
-        if ((int) $file['size'] > DocumentExtractor::MAX_UPLOAD_BYTES) {
-            flash('error', 'The file is too large (max ' . human_filesize(DocumentExtractor::MAX_UPLOAD_BYTES) . ').');
-            return redirect('/agents/' . $agent['id'] . '/knowledge');
-        }
-        $storageMb = Plans::limit($tenant, 'storage_mb');
-        $used = (int) DB::instance()->fetchColumn('SELECT COALESCE(SUM(file_size),0) FROM knowledge_sources WHERE tenant_id = ?', [(int) $tenant['id']]);
-        if ($storageMb > 0 && $used + (int) $file['size'] > $storageMb * 1024 * 1024) {
-            flash('error', 'Your storage limit (' . $storageMb . ' MB) would be exceeded.');
-            return redirect('/agents/' . $agent['id'] . '/knowledge');
-        }
-        $dir = APP_ROOT . '/storage/documents/' . (int) $tenant['id'];
-        if (!is_dir($dir)) {
-            @mkdir($dir, 0755, true);
-        }
-        $relative = (int) $tenant['id'] . '/' . bin2hex(random_bytes(12)) . '.' . $ext;
-        if (!move_uploaded_file((string) $file['tmp_name'], APP_ROOT . '/storage/documents/' . $relative)) {
-            flash('error', 'Could not store the uploaded file.');
-            return redirect('/agents/' . $agent['id'] . '/knowledge');
-        }
-        $mime = (string) (mime_content_type(APP_ROOT . '/storage/documents/' . $relative) ?: ($file['type'] ?? 'application/octet-stream'));
-        $sourceId = DB::instance()->insert('knowledge_sources', [
-            'tenant_id' => (int) $tenant['id'], 'agent_id' => (int) $agent['id'], 'type' => 'file', 'title' => mb_substr(pathinfo($name, PATHINFO_FILENAME), 0, 200) ?: 'Document',
-            'file_path' => $relative, 'file_name' => mb_substr($name, 0, 250), 'file_size' => (int) $file['size'], 'mime' => mb_substr($mime, 0, 100),
-            'status' => 'pending', 'created_at' => now(), 'updated_at' => now(),
-        ]);
-        JobQueue::push((int) $tenant['id'], (int) $agent['id'], 'process_source', ['source_id' => $sourceId]);
-        flash('success', 'File uploaded. The assistant is learning it now.');
-        return redirect('/agents/' . $agent['id'] . '/knowledge');
+        return $this->back($agent);
     }
 
     public function addFaq(Request $request, string $id): Response
     {
         $agent = $this->agent($id);
-        $tenant = current_tenant();
-        $questions = $request->array('question');
-        $answers = $request->array('answer');
+        $questions = $request->array('question') ?: $request->array('faq_question');
+        $answers = $request->array('answer') ?: $request->array('faq_answer');
         $items = [];
         foreach ($questions as $i => $q) {
-            $q = trim((string) $q);
-            $a = trim((string) ($answers[$i] ?? ''));
-            if ($q !== '' && $a !== '') {
-                $items[] = ['question' => mb_substr($q, 0, 500), 'answer' => mb_substr($a, 0, 5000)];
-            }
+            $items[] = ['question' => (string) $q, 'answer' => (string) ($answers[$i] ?? '')];
         }
-        if (!$items) {
-            flash('error', 'Please add at least one question with an answer.');
-            return redirect('/agents/' . $agent['id'] . '/knowledge');
+        try {
+            $appendTo = $request->int('source_id') ?: null;
+            KnowledgeImport::addFaq($agent, current_tenant(), $request->string('title') ?: 'FAQ', $items, $appendTo);
+            $count = count(array_filter($items, static fn($it) => trim($it['question']) !== '' && trim($it['answer']) !== ''));
+            flash('success', $count . ' FAQ ' . ($count === 1 ? 'entry' : 'entries') . ' saved. Training in progress.');
+        } catch (\RuntimeException $e) {
+            flash('error', $e->getMessage());
         }
-        $existingId = $request->int('source_id');
-        if ($existingId > 0) {
-            $source = $this->source($agent, (string) $existingId);
-            $settings = json_field($source['settings']);
-            $items = array_merge((array) ($settings['items'] ?? []), $items);
-            DB::instance()->update('knowledge_sources', ['settings' => json_encode(['items' => $items]), 'status' => 'pending', 'updated_at' => now()], 'id = :id', ['id' => $source['id']]);
-            $sourceId = (int) $source['id'];
-        } else {
-            if ($r = $this->checkDocumentLimit($agent, $tenant)) {
-                return $r;
-            }
-            $sourceId = DB::instance()->insert('knowledge_sources', [
-                'tenant_id' => (int) $tenant['id'], 'agent_id' => (int) $agent['id'], 'type' => 'faq', 'title' => mb_substr($request->string('title') ?: 'FAQ', 0, 200),
-                'status' => 'pending', 'settings' => json_encode(['items' => $items]), 'created_at' => now(), 'updated_at' => now(),
-            ]);
-        }
-        JobQueue::push((int) $tenant['id'], (int) $agent['id'], 'process_source', ['source_id' => $sourceId]);
-        flash('success', count($items) . ' FAQ ' . (count($items) === 1 ? 'entry' : 'entries') . ' saved. Training in progress.');
-        return redirect('/agents/' . $agent['id'] . '/knowledge');
+        return $this->back($agent);
     }
 
     public function addText(Request $request, string $id): Response
     {
         $agent = $this->agent($id);
-        $tenant = current_tenant();
-        if ($r = $this->checkDocumentLimit($agent, $tenant)) {
-            return $r;
+        try {
+            KnowledgeImport::addText($agent, current_tenant(), $request->string('title'), (string) $request->input('content', ''));
+            flash('success', 'Text saved. Training in progress.');
+        } catch (\RuntimeException $e) {
+            flash('error', $e->getMessage());
         }
-        $title = mb_substr($request->string('title'), 0, 200);
-        $content = trim((string) $request->input('content', ''));
-        if ($title === '' || mb_strlen($content) < 10) {
-            flash('error', 'Please provide a title and some content.');
-            return redirect('/agents/' . $agent['id'] . '/knowledge');
-        }
-        if (mb_strlen($content) > 200000) {
-            flash('error', 'The text is too long (max 200,000 characters). Split it into several entries.');
-            return redirect('/agents/' . $agent['id'] . '/knowledge');
-        }
-        $sourceId = DB::instance()->insert('knowledge_sources', [
-            'tenant_id' => (int) $tenant['id'], 'agent_id' => (int) $agent['id'], 'type' => 'text', 'title' => $title,
-            'status' => 'pending', 'settings' => json_encode(['content' => $content]), 'created_at' => now(), 'updated_at' => now(),
-        ]);
-        JobQueue::push((int) $tenant['id'], (int) $agent['id'], 'process_source', ['source_id' => $sourceId]);
-        flash('success', 'Text saved. Training in progress.');
-        return redirect('/agents/' . $agent['id'] . '/knowledge');
+        return $this->back($agent);
     }
 
     public function addUrl(Request $request, string $id): Response
     {
         $agent = $this->agent($id);
-        $tenant = current_tenant();
-        if ($r = $this->checkDocumentLimit($agent, $tenant)) {
-            return $r;
+        try {
+            KnowledgeImport::addUrl($agent, current_tenant(), $request->string('url'));
+            flash('success', 'Page added. Training in progress.');
+        } catch (\RuntimeException $e) {
+            flash('error', $e->getMessage());
         }
-        $raw = $request->string('url');
-        $url = $raw !== '' ? Crawler::normalize(preg_match('~^https?://~i', $raw) ? $raw : 'https://' . $raw) : null;
-        if ($url === null) {
-            flash('error', 'Please enter a valid page address.');
-            return redirect('/agents/' . $agent['id'] . '/knowledge');
-        }
-        $sourceId = DB::instance()->insert('knowledge_sources', [
-            'tenant_id' => (int) $tenant['id'], 'agent_id' => (int) $agent['id'], 'type' => 'url', 'title' => mb_substr($url, 0, 200), 'url' => $url,
-            'status' => 'pending', 'created_at' => now(), 'updated_at' => now(),
-        ]);
-        JobQueue::push((int) $tenant['id'], (int) $agent['id'], 'process_source', ['source_id' => $sourceId]);
-        flash('success', 'Page added. Training in progress.');
-        return redirect('/agents/' . $agent['id'] . '/knowledge');
+        return $this->back($agent);
     }
 
     public function reindex(Request $request, string $id): Response
@@ -259,11 +168,11 @@ final class KnowledgeController
         $agent = $this->agent($id);
         if (JobQueue::activeForAgent((int) $agent['id'])) {
             flash('error', 'A training job is already running for this agent.');
-            return redirect('/agents/' . $agent['id'] . '/knowledge');
+            return $this->back($agent);
         }
         JobQueue::push((int) $agent['tenant_id'], (int) $agent['id'], 'reindex_agent', []);
         flash('success', 'Re-training started.');
-        return redirect('/agents/' . $agent['id'] . '/knowledge');
+        return $this->back($agent);
     }
 
     public function showSource(Request $request, string $id, string $sourceId): Response
@@ -286,7 +195,7 @@ final class KnowledgeController
         $source = $this->source($agent, $sourceId);
         Indexer::deleteSource($source);
         flash('success', 'Source removed from the knowledge base.');
-        return redirect('/agents/' . $agent['id'] . '/knowledge');
+        return $this->back($agent);
     }
 
     public function showDocument(Request $request, string $id, string $docId): Response

@@ -25,7 +25,7 @@
 <div class="grid grid-sidebar">
   <div class="card">
     <div class="card-header"><div><h3>Create your AI agent</h3><div class="sub">Give it a name, a personality and a voice. You can change everything later.</div></div></div>
-    <form method="post" action="<?= e(url('/onboarding/agent')) ?>" class="card-body" x-data="{ tts: '<?= e($agent['tts_provider'] === 'auto' ? $ttsDefault : $agent['tts_provider']) ?>', voice: <?= (int) $agent['voice_enabled'] ? 'true' : 'false' ?> }">
+    <form method="post" action="<?= e(url('/onboarding/agent')) ?>" enctype="multipart/form-data" class="card-body" x-data="{ tts: '<?= e($agent['tts_provider'] === 'auto' ? $ttsDefault : $agent['tts_provider']) ?>', voice: <?= (int) $agent['voice_enabled'] ? 'true' : 'false' ?> }">
       <?= csrf_field() ?>
       <div class="form-row">
         <div class="form-group"><label class="form-label">Agent name</label><input class="form-control" name="name" value="<?= e(old('name', $agent['name'])) ?>" required></div>
@@ -63,6 +63,9 @@
         </div>
       </div>
       <div class="form-group"><label class="form-label">Greeting (spoken and shown when the assistant opens)</label><textarea class="form-control" name="greeting_message" rows="2"><?= e(old('greeting_message', $agent['greeting_message'])) ?></textarea></div>
+      <div class="divider-text">Knowledge base</div>
+      <p class="text-sm text-muted">Besides your website, give the assistant documents, FAQs or any information it should use when answering. Optional now, and you can always add more from the Knowledge page.</p>
+      <?= \App\Core\View::partial('partials/knowledge_fields', ['showWebsite' => false, 'limits' => $limits]) ?>
       <div class="flex gap-2 justify-between items-center mt-4"><a class="btn btn-ghost" href="<?= e(url('/onboarding?step=1')) ?>">&larr; Back</a><button class="btn btn-primary btn-lg" type="submit">Continue to design &rarr;</button></div>
     </form>
   </div>

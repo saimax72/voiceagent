@@ -174,6 +174,37 @@ final class Request
         return $file;
     }
 
+    /**
+     * All uploaded files for a field, supporting both single inputs and multiple (name="files[]").
+     * @return array<int, array{name:string,type:string,tmp_name:string,error:int,size:int}>
+     */
+    public function files(string $key): array
+    {
+        $raw = $this->files[$key] ?? null;
+        if (!$raw || !isset($raw['name'])) {
+            return [];
+        }
+        if (!is_array($raw['name'])) {
+            $single = $this->file($key);
+            return $single ? [$single] : [];
+        }
+        $out = [];
+        foreach ($raw['name'] as $i => $name) {
+            $error = (int) ($raw['error'][$i] ?? UPLOAD_ERR_NO_FILE);
+            if ($error === UPLOAD_ERR_NO_FILE || (string) $name === '') {
+                continue;
+            }
+            $out[] = [
+                'name' => (string) $name,
+                'type' => (string) ($raw['type'][$i] ?? ''),
+                'tmp_name' => (string) ($raw['tmp_name'][$i] ?? ''),
+                'error' => $error,
+                'size' => (int) ($raw['size'][$i] ?? 0),
+            ];
+        }
+        return $out;
+    }
+
     public function header(string $name): ?string
     {
         $key = 'HTTP_' . strtoupper(str_replace('-', '_', $name));
