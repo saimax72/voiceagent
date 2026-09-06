@@ -39,27 +39,33 @@ final class Chunker
 
         // Merge tiny sections into the following one so headings without content still add context
         $chunks = [];
-        $carryHeading = null;
+        $carry = null; // ['heading' => string, 'body' => string]
         foreach ($sections as $section) {
             $body = trim($section['body']);
             $heading = $section['heading'];
-            if ($carryHeading !== null) {
-                $heading = $heading !== null ? $carryHeading . ' / ' . $heading : $carryHeading;
-                $carryHeading = null;
+            if ($carry !== null) {
+                $heading = $heading !== null ? $carry['heading'] . ' / ' . $heading : $carry['heading'];
+                if ($carry['body'] !== '') {
+                    $body = $carry['body'] . "\n\n" . $body;
+                }
+                $carry = null;
             }
             if (mb_strlen($body) < 60 && $heading !== null) {
-                $carryHeading = $heading;
-                if ($body !== '') {
-                    $carryHeading .= ' - ' . $body;
-                }
+                $carry = ['heading' => $heading, 'body' => $body];
                 continue;
             }
             foreach (self::splitBody($body, $size, $overlap) as $piece) {
                 $chunks[] = ['heading' => $heading !== null ? mb_substr($heading, 0, 280) : null, 'content' => $piece];
             }
         }
-        if ($carryHeading !== null && $chunks === []) {
-            $chunks[] = ['heading' => null, 'content' => $carryHeading];
+        if ($carry !== null) {
+            $content = trim($carry['body']) !== '' ? $carry['body'] : $carry['heading'];
+            if ($chunks !== [] && mb_strlen($chunks[count($chunks) - 1]['content']) + mb_strlen($content) < $size) {
+                $last = count($chunks) - 1;
+                $chunks[$last]['content'] .= "\n\n" . $carry['heading'] . "\n" . $content;
+            } else {
+                $chunks[] = ['heading' => mb_substr($carry['heading'], 0, 280), 'content' => $content];
+            }
         }
         return $chunks;
     }

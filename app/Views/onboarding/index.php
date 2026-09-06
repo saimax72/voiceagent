@@ -1,4 +1,3 @@
-<?php \App\Core\View::partial('partials/onboarding_steps', []); ?>
 <?= \App\Core\View::partial('partials/onboarding_steps', ['current' => $step, 'nextUrl' => $step === 2 && $agent ? url('/agents/' . $agent['id'] . '/customize?onboarding=1') : null, 'nextLabel' => 'Skip to design']) ?>
 
 <?php if ($step === 1): ?>

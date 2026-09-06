@@ -213,7 +213,7 @@
     this.audioEl = null;
     this.recognition = null;
     this.recorder = null;
-    this.stream = null;
+    this.mediaStream = null;
     this.analyser = null;
     this.levelTimer = null;
     this.speechChunks = [];
@@ -579,7 +579,10 @@
         if (!self.ttsActive()) { self.afterSpeaking(); }
         self.scroll();
       });
-    }).catch(function () { self.busy = false; self.setState('idle'); });
+    }).catch(function (err) {
+      if (err && err.message && window.console) { console.error('[VoiceAgent] send failed:', err); }
+      self.busy = false; self.setState('idle');
+    });
   };
 
   /* Read a server-sent event stream via fetch. */
@@ -714,7 +717,7 @@
   Widget.prototype.startRecording = function () {
     var self = this;
     navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true } }).then(function (stream) {
-      self.stream = stream;
+      self.mediaStream = stream;
       var mime = '';
       ['audio/webm;codecs=opus', 'audio/webm', 'audio/mp4', 'audio/ogg;codecs=opus'].some(function (t) { if (window.MediaRecorder.isTypeSupported(t)) { mime = t; return true; } return false; });
       var rec = new MediaRecorder(stream, mime ? { mimeType: mime } : undefined);
@@ -758,7 +761,7 @@
   };
 
   Widget.prototype.releaseStream = function () {
-    if (this.stream) { this.stream.getTracks().forEach(function (t) { t.stop(); }); this.stream = null; }
+    if (this.mediaStream) { this.mediaStream.getTracks().forEach(function (t) { t.stop(); }); this.mediaStream = null; }
   };
 
   /* Volume meter drives the orb scale while listening; also auto-stops server recordings after silence. */

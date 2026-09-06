@@ -367,6 +367,20 @@ final class Crawler
         $port = isset($parts['port']) && !in_array((int) $parts['port'], [80, 443], true) ? ':' . $parts['port'] : '';
         $path = $parts['path'] ?? '/';
         $path = preg_replace('~/{2,}~', '/', $path) ?? $path;
+        if (str_contains($path, '/.')) {
+            $segments = [];
+            foreach (explode('/', $path) as $seg) {
+                if ($seg === '.' || $seg === '') {
+                    continue;
+                }
+                if ($seg === '..') {
+                    array_pop($segments);
+                    continue;
+                }
+                $segments[] = $seg;
+            }
+            $path = '/' . implode('/', $segments) . (str_ends_with($path, '/') && $segments ? '/' : '');
+        }
         $path = preg_replace('~/index\.(html?|php)$~i', '/', $path) ?? $path;
         if ($path !== '/' && !preg_match('/\.[a-z0-9]{2,5}$/i', $path)) {
             $path = rtrim($path, '/');

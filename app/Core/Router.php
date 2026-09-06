@@ -96,8 +96,9 @@ final class Router
 
     private function compile(string $pattern): string
     {
-        $regex = preg_replace_callback('/\{([a-zA-Z_][a-zA-Z0-9_]*)(?::([^}]+))?\}/', static function (array $m): string {
-            $sub = $m[2] ?? '[^/]+';
+        // Placeholders: {name} or {name:regex}; the regex may contain one level of braces, e.g. {id:[a-f0-9]{32}}
+        $regex = preg_replace_callback('/\{([a-zA-Z_][a-zA-Z0-9_]*)(?::((?:[^{}]|\{[^{}]*\})+))?\}/', static function (array $m): string {
+            $sub = isset($m[2]) && $m[2] !== '' ? $m[2] : '[^/]+';
             return '(?P<' . $m[1] . '>' . $sub . ')';
         }, $pattern);
         return '#^' . $regex . '$#u';

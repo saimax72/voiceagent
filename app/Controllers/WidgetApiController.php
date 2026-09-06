@@ -115,7 +115,7 @@ final class WidgetApiController
             'referrer' => $request->string('referrer'),
             'user_agent' => $request->userAgent(),
             'ip' => $request->ip(),
-        ], $agent['_preview'] && $request->boolean('test'));
+        ], $agent['_preview']); // dashboard preview/test conversations never count as real traffic
         return Response::json([
             'token' => Conversations::token($conversation),
             'conversation_id' => $conversation['public_id'],
