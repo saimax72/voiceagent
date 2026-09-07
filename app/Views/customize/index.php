@@ -30,7 +30,7 @@
 
     <div x-show="tab==='launcher'">
       <div class="cz-section"><h4>Widget style</h4>
-        <div class="choice-grid" style="grid-template-columns:1fr 1fr">
+        <div class="choice-grid">
           <label class="choice-card" :class="{on: c.widget_style!=='voice'}"><input type="radio" value="chat" x-model="c.widget_style"><span class="choice-check"></span><span class="choice-body"><span class="choice-title">Chat + voice</span><span class="choice-desc">Full window with the transcript, a text field and voice.</span></span></label>
           <label class="choice-card" :class="{on: c.widget_style==='voice'}"><input type="radio" value="voice" x-model="c.widget_style" <?= (int) $agent['voice_enabled'] ? '' : 'disabled' ?>><span class="choice-check"></span><span class="choice-body"><span class="choice-title">Voice only (compact)</span><span class="choice-desc">A small voice card: visitors talk, the assistant answers out loud. No chat window.</span></span></label>
         </div>
@@ -46,7 +46,7 @@
         <div class="form-group mt-3 mb-0" x-show="c.widget_style==='voice' && c.voice_layout!=='orb'"><label class="switch"><input type="checkbox" x-model="c.voice_captions"><span class="track"></span><span class="switch-label">Show captions (the question and the spoken answer)</span></label><div class="form-hint">Turn captions off for a pure back-and-forth voice conversation with no transcript on screen.</div></div>
       </div>
       <div class="cz-section"><h4>Launcher</h4>
-        <div class="choice-grid mb-3" style="grid-template-columns:1fr 1fr">
+        <div class="choice-grid mb-3">
           <label class="choice-card" :class="{on: c.launcher_style!=='card'}"><input type="radio" value="icon" x-model="c.launcher_style"><span class="choice-check"></span><span class="choice-body"><span class="choice-title">Round button</span><span class="choice-desc">A floating icon, optionally with a small label.</span></span></label>
           <label class="choice-card" :class="{on: c.launcher_style==='card'}"><input type="radio" value="card" x-model="c.launcher_style"><span class="choice-check"></span><span class="choice-body"><span class="choice-title">Card with avatar</span><span class="choice-desc">Avatar, a short line and a call-to-action, like &ldquo;Need help? Chat with Nicole&rdquo;.</span></span></label>
         </div>

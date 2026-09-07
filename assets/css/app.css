@@ -209,8 +209,8 @@ input[type=range] { width: 100%; accent-color: var(--primary); }
 .segmented button.active, .segmented label.active { background: var(--surface); color: var(--ink); box-shadow: var(--shadow-sm); }
 
 /* Choice cards (radio options with title + description) ------------------- */
-.choice-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
-.choice-card { position: relative; display: flex; gap: 12px; align-items: flex-start; padding: 14px 16px; border: 1px solid var(--border); border-radius: var(--radius); background: var(--surface); cursor: pointer; transition: border-color .15s, box-shadow .15s, background .15s; margin: 0; }
+.choice-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 240px), 1fr)); gap: 10px; max-width: 880px; }
+.choice-card { position: relative; display: flex; gap: 12px; align-items: flex-start; padding: 13px 15px; border: 1px solid var(--border); border-radius: var(--radius); background: var(--surface); cursor: pointer; transition: border-color .15s, box-shadow .15s, background .15s; margin: 0; }
 .choice-card:hover { border-color: var(--border-strong); box-shadow: var(--shadow-sm); }
 .choice-card input { position: absolute; opacity: 0; width: 0; height: 0; margin: 0; }
 .choice-check { width: 18px; height: 18px; border-radius: 50%; border: 2px solid var(--border-strong); flex-shrink: 0; margin-top: 1px; display: grid; place-items: center; transition: all .15s; background: var(--surface); }
@@ -220,10 +220,10 @@ input[type=range] { width: 100%; accent-color: var(--primary); }
 .choice-card.on .choice-check::after, .choice-card:has(input:checked) .choice-check::after { transform: scale(1); }
 .choice-card input:focus-visible ~ .choice-check { box-shadow: 0 0 0 4px rgba(0, 82, 252, .2); }
 .choice-card:has(input:disabled) { opacity: .55; cursor: not-allowed; }
-.choice-body { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
-.choice-title { font-weight: 700; font-size: 14px; color: var(--ink); line-height: 1.3; }
+.choice-body { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.choice-title { font-weight: 700; font-size: 14px; color: var(--ink); line-height: 1.3; text-wrap: balance; }
 .choice-desc { font-size: 12.5px; color: var(--text-3); line-height: 1.45; }
-@media (max-width: 640px) { .choice-grid { grid-template-columns: 1fr !important; } }
+
 
 /* Tables ------------------------------------------------------------------ */
 .table-wrap { overflow-x: auto; }
