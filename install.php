@@ -9,7 +9,7 @@ declare(strict_types=1);
 
 define('APP_ROOT', __DIR__);
 define('APP_PATH', __DIR__ . '/app');
-define('APP_VERSION', '1.4.0');
+define('APP_VERSION', '1.4.1');
 error_reporting(E_ALL);
 ini_set('display_errors', '1');
 

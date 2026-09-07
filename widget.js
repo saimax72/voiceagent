@@ -430,7 +430,10 @@
     this.setCaption(null, null);
     if (this.compact && this.open && !this.voiceMode) { this.setVoiceMode(true); }
     this.renderMute();
-    if (this.cfg.branding && this.cfg.branding.show) {
+    // Branding visibility follows the live widget config (w.show_branding) so the customizer's live
+    // preview updates instantly; it falls back to the value fetched at load if that key is ever missing.
+    var showBranding = typeof w.show_branding === 'boolean' ? w.show_branding : !!(this.cfg.branding && this.cfg.branding.show);
+    if (this.cfg.branding && showBranding) {
       this.el.brand.innerHTML = '<a href="' + esc(this.cfg.branding.url) + '?utm_source=widget" target="_blank" rel="noopener">' + esc(this.cfg.branding.text) + '</a>';
       this.el.brand.hidden = false;
     } else { this.el.brand.hidden = true; }
