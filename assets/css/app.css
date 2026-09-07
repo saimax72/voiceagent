@@ -124,6 +124,7 @@ hr { border: 0; border-top: 1px solid var(--border); margin: 20px 0; }
 .card-footer { padding: 16px 24px; border-top: 1px solid var(--border); background: var(--surface-2); border-radius: 0 0 var(--radius) var(--radius); }
 .card + .card { margin-top: 20px; }
 .grid { display: grid; gap: 20px; }
+.grid > * { min-width: 0; }
 .grid-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 .grid-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 .grid-4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
