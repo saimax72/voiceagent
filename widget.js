@@ -217,13 +217,45 @@
       '.va.compact .va-voice{display:flex;padding:14px 6px 8px}',
       '.va.compact .va-input-row{display:none}.va.compact.typing .va-input-row{display:flex;margin-top:6px}',
       '.va.compact .va-orb-wrap{width:104px;height:104px}.va.compact .va-orb{width:78px;height:78px}',
+      /* voice-only layout 1: mini card */
+      '.va.compact.vo-card .va-panel{width:' + Math.min(300, width) + 'px}',
+      '.va.compact.vo-card .va-orb-wrap{width:84px;height:84px}.va.compact.vo-card .va-orb{width:62px;height:62px}.va.compact.vo-card .va-orb svg{width:24px;height:24px}',
+      /* no heading on the mini card: only mute + close float in the corner */
+      '.va.compact.vo-card .va-header{position:absolute;top:6px;right:6px;background:transparent;color:var(--va-text);padding:0;gap:2px;z-index:2}.va.compact.vo-card .va-avatar,.va.compact.vo-card .va-htext{display:none}',
+      '.va.compact.vo-card .va-hbtn{width:28px;height:28px;background:transparent;color:var(--va-muted)}.va.compact.vo-card .va-hbtn:hover{background:var(--va-primary-soft);color:var(--va-primary)}.va.compact.vo-card .va-hbtn svg{width:16px;height:16px}',
+      '.va.compact.vo-card .va-voice{padding:26px 4px 6px;gap:8px}.va.compact.vo-card .va-vstatus{font-size:13px}.va.compact.vo-card .va-vhint{font-size:11.5px}.va.compact.vo-card .va-cap-bot{font-size:13px;max-height:84px;padding:8px 10px}.va.compact.vo-card .va-vbtn{font-size:12px;padding:6px 10px}.va.compact.vo-card .va-footer{padding:4px 10px 6px}',
+      /* voice-only layout 2: slim bar */
+      '.va.compact.vo-pill .va-panel{' + side + ':' + ox + 'px;bottom:' + oy + 'px;width:auto;min-width:230px;max-width:340px;height:auto;flex-direction:row;flex-wrap:wrap;align-items:center;border-radius:999px;padding:6px 8px 6px 6px}',
+      '.va.compact.vo-pill.open .va-launcher{display:none}',
+      '.va.compact.vo-pill .va-header{order:2;background:transparent;color:var(--va-text);padding:0;gap:2px;flex:0 0 auto}.va.compact.vo-pill .va-avatar,.va.compact.vo-pill .va-htext{display:none}',
+      '.va.compact.vo-pill .va-hbtn{width:30px;height:30px;background:transparent;color:var(--va-muted)}.va.compact.vo-pill .va-hbtn:hover{background:var(--va-primary-soft);color:var(--va-primary)}.va.compact.vo-pill .va-hbtn svg{width:16px;height:16px}',
+      '.va.compact.vo-pill .va-footer{order:1;flex:1 1 auto;min-width:0;max-width:230px;padding:0;border:0}',
+      '.va.compact.vo-pill .va-voice{display:grid;grid-template-columns:auto minmax(0,1fr);grid-template-areas:"orb status" "orb cap";align-items:center;column-gap:8px;row-gap:1px;padding:0}',
+      '.va.compact.vo-pill .va-orb-wrap{grid-area:orb;width:48px;height:48px}.va.compact.vo-pill .va-orb{width:40px;height:40px;box-shadow:0 6px 16px ' + rgba(w.primary_color, .35) + '}.va.compact.vo-pill .va-orb svg{width:18px;height:18px}.va.compact.vo-pill .va-bars{height:18px}.va.compact.vo-pill .va-bars span{width:3px;animation-name:va-bar-sm}',
+      '@keyframes va-bar-sm{0%,100%{height:6px}50%{height:16px}}',
+      '.va.compact.vo-pill .va-vstatus{grid-area:status;text-align:left;font-size:13px;min-height:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;align-self:end}',
+      '.va.compact.vo-pill .va-vhint,.va.compact.vo-pill .va-vactions{display:none}',
+      '.va.compact.vo-pill .va-caption{grid-area:cap;margin:0;display:block;min-height:15px}.va.compact.vo-pill .va-caption.has{display:block}.va.compact.vo-pill .va-cap-user{display:none}',
+      '.va.compact.vo-pill .va-cap-bot{display:block;background:transparent;color:var(--va-muted);padding:0;font-size:11.5px;line-height:1.3;max-height:none;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;border-radius:0}.va.compact.vo-pill .va-cap-bot:empty{display:none}.va.compact.vo-pill .va-cap-bot p,.va.compact.vo-pill .va-cap-bot ul,.va.compact.vo-pill .va-cap-bot li{display:inline;padding:0;margin:0}',
+      '.va.compact.vo-pill .va-brand{order:3;width:100%;font-size:10px;padding:2px 0 0;text-align:center}',
+      '.va.compact.vo-pill.typing .va-input-row{display:flex;order:4;width:100%;margin:6px 0 0}',
+      /* voice-only layout 3: orb only */
+      '.va.compact.vo-orb .va-panel{' + side + ':' + ox + 'px;bottom:' + oy + 'px;width:auto;min-width:0;height:auto;background:transparent;border:0;box-shadow:none;overflow:visible;border-radius:0;align-items:' + (side === 'left' ? 'flex-start' : 'flex-end') + '}',
+      '.va.compact.vo-orb.open .va-launcher{display:none}',
+      '.va.compact.vo-orb .va-header,.va.compact.vo-orb .va-body,.va.compact.vo-orb .va-vhint,.va.compact.vo-orb .va-vactions,.va.compact.vo-orb .va-caption,.va.compact.vo-orb .va-input-row{display:none}',
+      '.va.compact.vo-orb .va-footer{padding:0;border:0;background:transparent;display:flex;flex-direction:column;align-items:' + (side === 'left' ? 'flex-start' : 'flex-end') + '}',
+      '.va.compact.vo-orb .va-voice{padding:0;gap:6px;align-items:' + (side === 'left' ? 'flex-start' : 'flex-end') + '}',
+      '.va.compact.vo-orb .va-vstatus{order:1;font-size:12px;background:var(--va-bg);color:var(--va-text);border:1px solid var(--va-border);border-radius:999px;padding:4px 10px;box-shadow:0 6px 18px rgba(15,23,42,.12);min-height:0;max-width:220px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.va.compact.vo-orb .va-vstatus:empty{display:none}',
+      '.va.compact.vo-orb .va-orb-wrap{order:2;width:' + launcher + 'px;height:' + launcher + 'px}.va.compact.vo-orb .va-orb{width:' + launcher + 'px;height:' + launcher + 'px}.va.compact.vo-orb .va-orb svg{width:' + Math.round(launcher * .4) + 'px;height:' + Math.round(launcher * .4) + 'px}',
+      '.va-oclose{display:none;position:absolute;top:-4px;' + otherSide + ':-4px;width:22px;height:22px;border-radius:50%;border:1px solid var(--va-border);background:var(--va-bg);color:var(--va-muted);cursor:pointer;place-items:center;padding:0;z-index:3;box-shadow:0 2px 6px rgba(15,23,42,.15)}.va-oclose svg{width:11px;height:11px}.va-oclose:hover{color:var(--va-text)}.va.compact.vo-orb .va-oclose{display:grid}',
+      '.va.compact.vo-orb .va-brand{font-size:10px;padding:4px 0 0;background:transparent}',
       /* lead form */
       '.va-form{background:var(--va-bot-bg);color:var(--va-bot-text);border-radius:12px;padding:14px;display:flex;flex-direction:column;gap:8px;align-self:stretch;animation:va-fade .25s}',
       '.va-form h4{margin:0 0 2px;font-size:14px}.va-form input,.va-form textarea{width:100%;border:1px solid var(--va-border);border-radius:6px;padding:9px 11px;font:inherit;font-size:13.5px;background:var(--va-bg);color:var(--va-text)}.va-form textarea{resize:vertical;min-height:60px}',
       '.va-form .va-fbtn{background:var(--va-btn);color:var(--va-btn-text);border:0;border-radius:5px;padding:10px;font:inherit;font-weight:600;cursor:pointer}.va-form .va-ferr{font-size:12px;color:#dc2626}',
       '.va-notice{align-self:center;font-size:12px;color:var(--va-muted);background:var(--va-input-bg);border:1px solid var(--va-border);padding:5px 10px;border-radius:20px;display:inline-flex;gap:6px;align-items:center;animation:va-fade .25s}.va-notice svg{width:13px;height:13px;color:#10b981}',
       '.va-error{align-self:center;font-size:12.5px;color:#b91c1c;background:#fef2f2;border:1px solid #fecaca;padding:7px 12px;border-radius:8px;text-align:center}',
-      '@media (max-width:480px){.va-panel{' + side + ':0;' + otherSide + ':0;bottom:0;width:100%;max-width:100%;height:100%;max-height:100%;border-radius:0;border:0}.va.open .va-launcher{display:none}.va.compact .va-panel{' + side + ':12px;' + otherSide + ':12px;bottom:12px;width:auto;max-width:none;height:auto;max-height:calc(100vh - 24px);border-radius:var(--va-radius);border:1px solid var(--va-border)}}',
+      '@media (max-width:480px){.va-panel{' + side + ':0;' + otherSide + ':0;bottom:0;width:100%;max-width:100%;height:100%;max-height:100%;border-radius:0;border:0}.va.open .va-launcher{display:none}.va.compact .va-panel{' + side + ':12px;' + otherSide + ':12px;bottom:12px;width:auto;max-width:none;height:auto;max-height:calc(100vh - 24px);border-radius:var(--va-radius);border:1px solid var(--va-border)}.va.compact.vo-pill .va-panel{' + otherSide + ':auto;max-width:calc(100vw - 24px);border-radius:999px}.va.compact.vo-orb .va-panel{' + otherSide + ':auto;border:0;background:transparent}}',
       '@media (prefers-reduced-motion:reduce){.va *{animation-duration:.01s!important;transition-duration:.01s!important}}'
     ].join('\n');
   }
@@ -311,7 +343,7 @@
         '<div class="va-body"></div>' +
         '<div class="va-footer">' +
           '<div class="va-voice">' +
-            '<div class="va-orb-wrap" role="button" tabindex="0" aria-label="Talk"><span class="va-ring"></span><span class="va-ring"></span><span class="va-ring"></span><div class="va-orb"><span class="va-orb-icon">' + ICONS.mic + '</span><div class="va-bars"><span></span><span></span><span></span><span></span><span></span></div></div></div>' +
+            '<div class="va-orb-wrap" role="button" tabindex="0" aria-label="Talk"><span class="va-ring"></span><span class="va-ring"></span><span class="va-ring"></span><div class="va-orb"><span class="va-orb-icon">' + ICONS.mic + '</span><div class="va-bars"><span></span><span></span><span></span><span></span><span></span></div></div><button class="va-oclose" type="button" aria-label="Close">' + ICONS.close + '</button></div>' +
             '<div class="va-vstatus"></div><div class="va-vhint"></div>' +
             '<div class="va-caption"><div class="va-cap-user"></div><div class="va-cap-bot"></div></div>' +
             '<div class="va-vactions"><button class="va-vbtn va-stop" type="button" hidden>' + ICONS.stop + '<span>Stop</span></button><button class="va-vbtn va-typeinstead" type="button">' + ICONS.keyboard + '<span>Type instead</span></button></div>' +
@@ -331,7 +363,8 @@
       brand: q('.va-brand'), voiceToggle: q('.va-voicetoggle'), mute: q('.va-mute'), orbWrap: q('.va-orb-wrap'), vstatus: q('.va-vstatus'), vhint: q('.va-vhint'),
       stop: q('.va-stop'), typeInstead: q('.va-typeinstead'), reset: q('.va-reset'), close: q('.va-close'),
       caption: q('.va-caption'), capUser: q('.va-cap-user'), capBot: q('.va-cap-bot'),
-      lcard: q('.va-lcard'), lcardAvatar: q('.va-lcard-avatar'), lcardText: q('.va-lcard-text'), lcardCta: q('.va-lcard-cta'), lcardChat: q('.va-lcard-chat')
+      lcard: q('.va-lcard'), lcardAvatar: q('.va-lcard-avatar'), lcardText: q('.va-lcard-text'), lcardCta: q('.va-lcard-cta'), lcardChat: q('.va-lcard-chat'),
+      oclose: q('.va-oclose')
     };
     this.muted = load('va_muted') === true;
     this.renderMute();
@@ -352,6 +385,7 @@
     });
     this.el.stop.addEventListener('click', function () { self.interrupt(); });
     this.el.orbWrap.addEventListener('click', function () { self.orbTap(); });
+    this.el.oclose.addEventListener('click', function (e) { e.stopPropagation(); self.toggle(false); });
     this.el.orbWrap.addEventListener('keydown', function (e) { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); self.orbTap(); } });
     this.el.mic.addEventListener('click', function () { self.micTap(); });
     this.el.send.addEventListener('click', function () { self.submit(); });
@@ -388,7 +422,10 @@
     this.el.mic.hidden = !a.voice_enabled;
     this.el.voiceToggle.hidden = !a.voice_enabled;
     this.compact = w.widget_style === 'voice' && !!a.voice_enabled;
+    this.voiceLayout = ['card', 'pill', 'orb'].indexOf(w.voice_layout) !== -1 ? w.voice_layout : 'card';
     this.container.classList.toggle('compact', this.compact);
+    this.container.classList.remove('vo-card', 'vo-pill', 'vo-orb');
+    if (this.compact) { this.container.classList.add('vo-' + this.voiceLayout); }
     if (!this.compact) { this.container.classList.remove('typing'); }
     this.setCaption(null, null);
     if (this.compact && this.open && !this.voiceMode) { this.setVoiceMode(true); }
@@ -792,7 +829,7 @@
     if (!this.el || !this.el.caption) { return; }
     if (userText !== null && userText !== undefined) { this.el.capUser.textContent = userText; this.el.capUser.classList.toggle('show', !!userText); }
     if (botText !== null && botText !== undefined) { this.el.capBot.innerHTML = botText ? md(botText) : ''; this.el.capBot.classList.toggle('show', !!botText); this.el.capBot.scrollTop = this.el.capBot.scrollHeight; }
-    var visible = this.compact && this.w.voice_captions !== false && (this.el.capUser.classList.contains('show') || this.el.capBot.classList.contains('show'));
+    var visible = this.compact && this.voiceLayout !== 'orb' && this.w.voice_captions !== false && (this.el.capUser.classList.contains('show') || this.el.capBot.classList.contains('show'));
     this.el.caption.classList.toggle('has', !!visible);
   };
 

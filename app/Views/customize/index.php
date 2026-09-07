@@ -35,7 +35,15 @@
           <label class="choice-card" :class="{on: c.widget_style==='voice'}"><input type="radio" value="voice" x-model="c.widget_style" <?= (int) $agent['voice_enabled'] ? '' : 'disabled' ?>><span class="choice-check"></span><span class="choice-body"><span class="choice-title">Voice only (compact)</span><span class="choice-desc">A small voice card: visitors talk, the assistant answers out loud. No chat window.</span></span></label>
         </div>
         <?php if (!(int) $agent['voice_enabled']): ?><div class="form-hint mt-2">Turn on voice conversations under Personality &amp; voice to use the voice-only style.</div><?php endif; ?>
-        <div class="form-group mt-3 mb-0" x-show="c.widget_style==='voice'"><label class="switch"><input type="checkbox" x-model="c.voice_captions"><span class="track"></span><span class="switch-label">Show captions (the question and the spoken answer)</span></label><div class="form-hint">Turn captions off for a pure back-and-forth voice conversation with no transcript on screen.</div></div>
+        <div x-show="c.widget_style==='voice'" class="mt-3">
+          <label class="form-label">Voice widget size</label>
+          <div class="choice-grid">
+            <label class="choice-card" :class="{on: !c.voice_layout || c.voice_layout==='card'}"><input type="radio" value="card" x-model="c.voice_layout"><span class="choice-check"></span><span class="choice-body"><span class="choice-title">Mini card</span><span class="choice-desc">Orb, status and short captions. About 300 px wide.</span></span></label>
+            <label class="choice-card" :class="{on: c.voice_layout==='pill'}"><input type="radio" value="pill" x-model="c.voice_layout"><span class="choice-check"></span><span class="choice-body"><span class="choice-title">Slim bar</span><span class="choice-desc">One-line pill with the orb, status and controls. About 300 &times; 60 px.</span></span></label>
+            <label class="choice-card" :class="{on: c.voice_layout==='orb'}"><input type="radio" value="orb" x-model="c.voice_layout"><span class="choice-check"></span><span class="choice-body"><span class="choice-title">Orb only</span><span class="choice-desc">Just the floating orb with a tiny status label. Same size as the launcher.</span></span></label>
+          </div>
+        </div>
+        <div class="form-group mt-3 mb-0" x-show="c.widget_style==='voice' && c.voice_layout!=='orb'"><label class="switch"><input type="checkbox" x-model="c.voice_captions"><span class="track"></span><span class="switch-label">Show captions (the question and the spoken answer)</span></label><div class="form-hint">Turn captions off for a pure back-and-forth voice conversation with no transcript on screen.</div></div>
       </div>
       <div class="cz-section"><h4>Launcher</h4>
         <div class="choice-grid mb-3" style="grid-template-columns:1fr 1fr">

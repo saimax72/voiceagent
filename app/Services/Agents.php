@@ -91,6 +91,7 @@ final class Agents
             'show_lead_form' => true,
             'voice_mode_default' => false,
             'widget_style' => 'chat',
+            'voice_layout' => 'card',
             'voice_captions' => true,
             'auto_open' => false,
             'auto_open_delay' => 8,
