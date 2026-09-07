@@ -52,9 +52,9 @@ $extraJson = json_encode($extraLangs, JSON_UNESCAPED_UNICODE | JSON_HEX_APOS | J
       <div x-show="promptMode==='guided'">
         <div class="form-group">
           <label class="form-label">Personality</label>
-          <div class="grid grid-3" style="gap:10px">
+          <div class="choice-grid">
             <?php foreach ($personas as $key => $p): ?>
-              <label class="card" style="padding:12px 14px;cursor:pointer;box-shadow:none" :style="persona==='<?= e($key) ?>' ? 'border-color:var(--primary);background:var(--primary-50)' : ''"><div class="flex items-center gap-2"><input type="radio" name="persona" value="<?= e($key) ?>" x-model="persona" style="accent-color:var(--primary)"> <strong class="text-sm"><?= e($p['label']) ?></strong></div><div class="text-xs text-muted mt-1"><?= e($p['description']) ?></div></label>
+              <label class="choice-card" :class="{on: persona==='<?= e($key) ?>'}"><input type="radio" name="persona" value="<?= e($key) ?>" x-model="persona"><span class="choice-check"></span><span class="choice-body"><span class="choice-title"><?= e($p['label']) ?></span><span class="choice-desc"><?= e($p['description']) ?></span></span></label>
             <?php endforeach; ?>
           </div>
         </div>
@@ -100,7 +100,7 @@ $extraJson = json_encode($extraLangs, JSON_UNESCAPED_UNICODE | JSON_HEX_APOS | J
         <div class="var-chips"><span class="text-xs text-muted" style="align-self:center">Insert variable:</span><?php foreach (['agent_name', 'business_name', 'day_of_week', 'visitor_language'] as $var): ?><button type="button" @click="insertVar('greeting_message', '<?= e($var) ?>')">{{<?= e($var) ?>}}</button><?php endforeach; ?></div>
         <div class="form-hint">The first message the assistant says and shows when it opens. Leave it empty and the assistant waits for the visitor to start. Different languages can have their own first message under the Languages tab.</div>
       </div>
-      <div class="form-group"><label class="switch"><input type="checkbox" name="interruptible" value="1" x-model="interruptible"><span class="track"></span><span class="switch-label">Interruptible</span></label><div class="form-hint">When on, visitors can tap the microphone (or start talking in hands-free mode) while the assistant is still speaking and it stops immediately. When off, the assistant finishes speaking first.</div></div>
+      <div class="form-group"><label class="switch"><input type="checkbox" name="interruptible" value="1" x-model="interruptible"><span class="track"></span><span class="switch-label">Interruptible</span></label><div class="form-hint">When on, visitors can simply start talking while the assistant is still speaking (or tap the microphone) and it stops at once to listen to the new question. When off, the assistant finishes speaking first.</div></div>
       <div class="form-group"><label class="form-label">Fallback message</label><textarea class="form-control" name="fallback_message" rows="3"><?= e($o('fallback_message')) ?></textarea><div class="form-hint">Shown when the AI service is unavailable.</div></div>
     </div>
   </div>

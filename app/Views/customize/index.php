@@ -29,7 +29,27 @@
     </div>
 
     <div x-show="tab==='launcher'">
-      <div class="cz-section"><h4>Floating icon</h4>
+      <div class="cz-section"><h4>Widget style</h4>
+        <div class="choice-grid" style="grid-template-columns:1fr 1fr">
+          <label class="choice-card" :class="{on: c.widget_style!=='voice'}"><input type="radio" value="chat" x-model="c.widget_style"><span class="choice-check"></span><span class="choice-body"><span class="choice-title">Chat + voice</span><span class="choice-desc">Full window with the transcript, a text field and voice.</span></span></label>
+          <label class="choice-card" :class="{on: c.widget_style==='voice'}"><input type="radio" value="voice" x-model="c.widget_style" <?= (int) $agent['voice_enabled'] ? '' : 'disabled' ?>><span class="choice-check"></span><span class="choice-body"><span class="choice-title">Voice only (compact)</span><span class="choice-desc">A small voice card: visitors talk, the assistant answers out loud. No chat window.</span></span></label>
+        </div>
+        <?php if (!(int) $agent['voice_enabled']): ?><div class="form-hint mt-2">Turn on voice conversations under Personality &amp; voice to use the voice-only style.</div><?php endif; ?>
+        <div class="form-group mt-3 mb-0" x-show="c.widget_style==='voice'"><label class="switch"><input type="checkbox" x-model="c.voice_captions"><span class="track"></span><span class="switch-label">Show captions (the question and the spoken answer)</span></label><div class="form-hint">Turn captions off for a pure back-and-forth voice conversation with no transcript on screen.</div></div>
+      </div>
+      <div class="cz-section"><h4>Launcher</h4>
+        <div class="choice-grid mb-3" style="grid-template-columns:1fr 1fr">
+          <label class="choice-card" :class="{on: c.launcher_style!=='card'}"><input type="radio" value="icon" x-model="c.launcher_style"><span class="choice-check"></span><span class="choice-body"><span class="choice-title">Round button</span><span class="choice-desc">A floating icon, optionally with a small label.</span></span></label>
+          <label class="choice-card" :class="{on: c.launcher_style==='card'}"><input type="radio" value="card" x-model="c.launcher_style"><span class="choice-check"></span><span class="choice-body"><span class="choice-title">Card with avatar</span><span class="choice-desc">Avatar, a short line and a call-to-action, like &ldquo;Need help? Chat with Nicole&rdquo;.</span></span></label>
+        </div>
+        <div x-show="c.launcher_style==='card'" class="mb-3">
+          <div class="form-row">
+            <div class="form-group"><label class="form-label">Card text</label><input class="form-control" x-model="c.launcher_label" placeholder="Need help?"></div>
+            <div class="form-group"><label class="form-label">Button text</label><input class="form-control" x-model="c.launcher_cta" placeholder="Chat with Nicole"></div>
+          </div>
+          <div class="form-hint">The card shows the agent avatar (set further down). The button starts a voice conversation; the small chat icon opens text chat.</div>
+        </div>
+        <div x-show="c.launcher_style!=='card'">
         <div class="icon-pick mb-3">
           <?php foreach (['chat' => '<path d="M21 12a8 8 0 0 1-8 8H8l-5 3 1.5-4.5A8 8 0 1 1 21 12z"/>', 'mic' => '<rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3M8 21h8"/>', 'sparkle' => '<path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8z"/>', 'bot' => '<rect x="4" y="8" width="16" height="12" rx="3"/><path d="M12 8V4m-4 4h8M9 14h.01M15 14h.01"/>'] as $k => $svg): ?>
             <label :class="{on: c.launcher_icon==='<?= $k ?>'}" title="<?= $k ?>"><input type="radio" value="<?= $k ?>" x-model="c.launcher_icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><?= $svg ?></svg></label>
@@ -43,6 +63,7 @@
         </div>
         <div class="form-group"><label class="form-label">Label next to the icon <span class="optional">(optional)</span></label><input class="form-control" x-model="c.launcher_label" placeholder="Ask me anything"></div>
         <label class="switch"><input type="checkbox" x-model="c.launcher_pulse"><span class="track"></span><span class="switch-label">Pulse animation to attract attention</span></label>
+        </div>
       </div>
       <div class="cz-section"><h4>Position</h4>
         <div class="form-row">

@@ -11,9 +11,9 @@
       </div>
       <div class="form-group">
         <label class="form-label">Personality</label>
-        <div class="grid grid-3" style="gap:10px">
+        <div class="choice-grid">
           <?php foreach ($personas as $key => $p): ?>
-            <label class="card" style="padding:12px 14px;cursor:pointer;box-shadow:none"><div class="flex items-center gap-2"><input type="radio" name="persona" value="<?= e($key) ?>" <?= old('persona', 'friendly') === $key ? 'checked' : '' ?> style="accent-color:var(--primary)"> <strong class="text-sm"><?= e($p['label']) ?></strong></div><div class="text-xs text-muted mt-1"><?= e($p['description']) ?></div></label>
+            <label class="choice-card"><input type="radio" name="persona" value="<?= e($key) ?>" <?= old('persona', 'friendly') === $key ? 'checked' : '' ?>><span class="choice-check"></span><span class="choice-body"><span class="choice-title"><?= e($p['label']) ?></span><span class="choice-desc"><?= e($p['description']) ?></span></span></label>
           <?php endforeach; ?>
         </div>
       </div>

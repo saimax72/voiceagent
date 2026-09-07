@@ -15,9 +15,9 @@ final class CustomizeController
 {
     private const COLORS = ['primary_color', 'header_bg', 'header_text', 'bg_color', 'text_color', 'bot_bubble_bg', 'bot_bubble_text', 'user_bubble_bg', 'user_bubble_text', 'button_color', 'button_text_color'];
     private const INTS = ['offset_x' => [0, 120], 'offset_y' => [0, 120], 'launcher_size' => [44, 90], 'popup_width' => [320, 560], 'popup_height' => [420, 860], 'border_radius' => [0, 40], 'auto_open_delay' => [1, 120]];
-    private const TEXTS = ['launcher_label' => 40, 'header_title' => 60, 'header_subtitle' => 80, 'greeting_text' => 120, 'welcome_message' => 300, 'ask_me_text' => 60, 'input_placeholder' => 80, 'mic_text' => 60, 'listening_text' => 60, 'thinking_text' => 60, 'speaking_text' => 60, 'lead_form_title' => 120];
-    private const BOOLS = ['launcher_pulse', 'show_lead_form', 'voice_mode_default', 'auto_open', 'sound_effects', 'show_branding'];
-    private const ENUMS = ['position' => ['left', 'right'], 'launcher_shape' => ['circle', 'rounded', 'square'], 'launcher_icon' => ['chat', 'mic', 'sparkle', 'bot', 'custom'], 'avatar_style' => ['initials', 'image', 'icon'], 'theme' => ['light', 'dark']];
+    private const TEXTS = ['launcher_label' => 40, 'launcher_cta' => 40, 'header_title' => 60, 'header_subtitle' => 80, 'greeting_text' => 120, 'welcome_message' => 300, 'ask_me_text' => 60, 'input_placeholder' => 80, 'mic_text' => 60, 'listening_text' => 60, 'thinking_text' => 60, 'speaking_text' => 60, 'lead_form_title' => 120];
+    private const BOOLS = ['launcher_pulse', 'show_lead_form', 'voice_mode_default', 'auto_open', 'sound_effects', 'show_branding', 'voice_captions'];
+    private const ENUMS = ['position' => ['left', 'right'], 'launcher_shape' => ['circle', 'rounded', 'square'], 'launcher_icon' => ['chat', 'mic', 'sparkle', 'bot', 'custom'], 'avatar_style' => ['initials', 'image', 'icon'], 'theme' => ['light', 'dark'], 'widget_style' => ['chat', 'voice'], 'launcher_style' => ['icon', 'card']];
 
     public function index(Request $request, string $id): Response
     {
