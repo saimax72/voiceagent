@@ -42,6 +42,7 @@
   var FONT_FAMILIES = {
     'Inter': "'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif",
     'DM Sans': "'DM Sans', system-ui, sans-serif",
+    'Outfit': "'Outfit', system-ui, sans-serif",
     'Poppins': "'Poppins', system-ui, sans-serif",
     'Roboto': "'Roboto', system-ui, sans-serif",
     'Open Sans': "'Open Sans', system-ui, sans-serif",

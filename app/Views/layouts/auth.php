@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title><?= e($title ?? 'Sign in') ?> - <?= e($app_name) ?></title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="<?= e(asset('assets/css/app.css')) ?>">
 <link rel="icon" href="<?= e(asset('assets/img/favicon.svg')) ?>" type="image/svg+xml">
 <style>
@@ -14,12 +14,12 @@
   .auth-side { position: relative; display: flex; flex-direction: column; padding: 56px 64px 0; background: linear-gradient(180deg, #ffffff 0%, #f1f4fc 100%); border-right: 1px solid var(--border); overflow: hidden; }
   .auth-copy { position: relative; z-index: 1; max-width: 540px; flex: 0 0 auto; }
   .auth-copy .brand-logo img { height: 34px; width: auto; display: block; }
-  .auth-side h2 { font-size: 38px; line-height: 1.1; margin: 44px 0 16px; letter-spacing: -0.035em; color: var(--ink); }
+  .auth-side h2 { font-size: 40px; line-height: 1.08; margin: 44px 0 16px; letter-spacing: -0.035em; color: var(--ink); }
   .auth-side p { color: var(--text-2); font-size: 16px; line-height: 1.65; margin: 0; max-width: 480px; }
   .auth-side ul { list-style: none; padding: 0; margin: 28px 0 0; display: flex; flex-direction: column; gap: 12px; }
   .auth-side li { display: flex; gap: 12px; align-items: center; font-size: 15px; color: var(--text); font-weight: 600; }
   .auth-side li span { width: 26px; height: 26px; border-radius: 5px; background: var(--primary-50); color: var(--primary); display: grid; place-items: center; font-size: 13px; font-weight: 800; flex-shrink: 0; }
-  .auth-art { display: block; margin: 28px -64px 0; flex: 0 0 auto; align-self: flex-end; width: calc(100% + 128px); height: clamp(200px, 44vh, 480px); margin-top: auto; padding-top: 28px; object-fit: cover; object-position: 66% 60%; pointer-events: none; user-select: none; -webkit-mask-image: linear-gradient(to bottom, transparent 0%, #000 30%); mask-image: linear-gradient(to bottom, transparent 0%, #000 30%); }
+  .auth-art { display: block; margin: 28px -64px 0; flex: 0 0 auto; align-self: flex-end; width: calc(100% + 128px); height: auto; aspect-ratio: 2162 / 727; margin-top: auto; padding-top: 28px; object-fit: cover; object-position: center; pointer-events: none; user-select: none; -webkit-mask-image: linear-gradient(to bottom, transparent 0%, #000 30%); mask-image: linear-gradient(to bottom, transparent 0%, #000 30%); }
   .auth-main { display: flex; align-items: center; justify-content: center; padding: 48px 24px; }
   .auth-card { width: 100%; max-width: 440px; }
   .auth-card h1 { font-size: 28px; margin-bottom: 6px; letter-spacing: -0.03em; }

@@ -27,7 +27,7 @@ final class Agents
         'custom' => ['label' => 'Custom', 'description' => 'Describe the personality in the instructions box.', 'prompt' => ''],
     ];
 
-    public const FONTS = ['Inter', 'DM Sans', 'Poppins', 'Roboto', 'Open Sans', 'Lato', 'Montserrat', 'Nunito', 'Manrope', 'Source Sans 3', 'System'];
+    public const FONTS = ['Inter', 'DM Sans', 'Outfit', 'Poppins', 'Roboto', 'Open Sans', 'Lato', 'Montserrat', 'Nunito', 'Manrope', 'Source Sans 3', 'System'];
 
     /** Variables usable as {{name}} in prompts, greetings and instructions. */
     public const TEMPLATE_VARIABLES = [

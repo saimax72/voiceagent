@@ -172,11 +172,11 @@ $e = static fn($v) => htmlspecialchars((string) $v, ENT_QUOTES, 'UTF-8');
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Install VoiceAgent</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
-*{box-sizing:border-box}body{margin:0;font-family:Manrope,Inter,system-ui,sans-serif;background:#f6f7f9;color:#141b25;-webkit-font-smoothing:antialiased}
+*{box-sizing:border-box}body{margin:0;font-family:'DM Sans',Inter,system-ui,sans-serif;background:#f6f7f9;color:#141b25;-webkit-font-smoothing:antialiased}
 .wrap{max-width:760px;margin:40px auto;padding:0 20px}.card{background:#fff;border:1px solid #e6e8ee;border-radius:10px;padding:32px;box-shadow:0 10px 40px rgba(15,23,42,.06);margin-bottom:20px}
-h1{font-size:26px;margin:0 0 6px}h2{font-size:17px;margin:28px 0 12px}p{color:#475569;line-height:1.6}.brand{display:flex;align-items:center;gap:12px;margin-bottom:24px}
+h1,h2{font-family:Outfit,'DM Sans',sans-serif;letter-spacing:-.02em;font-weight:600}h1{font-size:26px;margin:0 0 6px}h2{font-size:17px;margin:28px 0 12px}p{color:#475569;line-height:1.6}.brand{display:flex;align-items:center;gap:12px;margin-bottom:24px}
 .logo{width:44px;height:44px;border-radius:10px;background:#141b25;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:800}
 .grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}label{display:block;font-size:13px;font-weight:600;margin-bottom:6px}
 input{width:100%;padding:11px 13px;border:1px solid #d0d5dd;border-radius:6px;font:inherit;font-size:14px}input:focus{outline:none;border-color:#0052fc;box-shadow:0 0 0 3px rgba(0,82,252,.15)}
