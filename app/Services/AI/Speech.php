@@ -49,6 +49,13 @@ final class Speech
         'eleven_v3' => 'Expressive (v3) - emotional, natural intonation',
     ];
 
+    /** Fish Audio speech models. Voices are chosen with a reference id from fish.audio. */
+    public const FISHAUDIO_MODELS = [
+        's1' => 'S1 - highest quality, most expressive',
+        'speech-1.6' => 'Speech 1.6 - fast, multilingual',
+        'speech-1.5' => 'Speech 1.5 - legacy',
+    ];
+
     public static function hasOpenAI(): bool
     {
         return (string) Settings::get('openai_api_key', '') !== '';
@@ -57,6 +64,11 @@ final class Speech
     public static function hasElevenLabs(): bool
     {
         return (string) Settings::get('elevenlabs_api_key', '') !== '';
+    }
+
+    public static function hasFishAudio(): bool
+    {
+        return (string) Settings::get('fishaudio_api_key', '') !== '';
     }
 
     /** Resolve the STT mode for an agent: 'server' (OpenAI transcription) or 'browser'. */
@@ -78,6 +90,9 @@ final class Speech
         if ($pref === 'browser' || $platform === 'browser' || !$premiumAllowed) {
             return 'browser';
         }
+        if ($pref === 'fishaudio' && self::hasFishAudio()) {
+            return 'fishaudio';
+        }
         if ($pref === 'elevenlabs' && self::hasElevenLabs()) {
             return 'elevenlabs';
         }
@@ -85,6 +100,9 @@ final class Speech
             return 'openai';
         }
         if ($pref === 'auto') {
+            if ($platform === 'fishaudio' && self::hasFishAudio()) {
+                return 'fishaudio';
+            }
             if ($platform === 'elevenlabs' && self::hasElevenLabs()) {
                 return 'elevenlabs';
             }
@@ -104,6 +122,7 @@ final class Speech
         return [
             'openai' => self::OPENAI_VOICES,
             'elevenlabs' => self::ELEVENLABS_VOICES,
+            'fishaudio' => [],
         ];
     }
 
@@ -164,13 +183,17 @@ final class Speech
         if (!is_dir($cacheDir)) {
             @mkdir($cacheDir, 0755, true);
         }
-        $styleKey = json_encode(array_intersect_key($settings, array_flip(['elevenlabs_model', 'stability', 'similarity', 'style', 'openai_instructions'])));
+        $styleKey = json_encode(array_intersect_key($settings, array_flip(['elevenlabs_model', 'stability', 'similarity', 'style', 'openai_instructions', 'fishaudio_model'])));
         $cacheFile = $cacheDir . '/' . hash('sha256', $provider . '|' . $voice . '|' . $speed . '|' . $styleKey . '|' . $text) . '.mp3';
         if (is_file($cacheFile) && filesize($cacheFile) > 0) {
             @touch($cacheFile);
             return ['audio' => (string) file_get_contents($cacheFile), 'mime' => 'audio/mpeg', 'cached' => true];
         }
-        $audio = $provider === 'elevenlabs' ? self::elevenLabs($text, $voice, $speed, $settings) : self::openAI($text, $voice, $speed, $settings);
+        $audio = match ($provider) {
+            'elevenlabs' => self::elevenLabs($text, $voice, $speed, $settings),
+            'fishaudio' => self::fishAudio($text, $voice, $speed, $settings),
+            default => self::openAI($text, $voice, $speed, $settings),
+        };
         @file_put_contents($cacheFile, $audio);
         return ['audio' => $audio, 'mime' => 'audio/mpeg', 'cached' => false];
     }
@@ -232,6 +255,51 @@ final class Speech
         ], ['xi-api-key' => $key, 'Accept' => 'audio/mpeg'], ['timeout' => 60]);
         if (!$response->ok()) {
             Logger::error('ElevenLabs error ' . $response->status . ': ' . mb_substr($response->body ?: $response->error, 0, 300));
+            throw new \RuntimeException('Could not generate speech audio.');
+        }
+        return $response->body;
+    }
+
+    /**
+     * Fish Audio (fish.audio). The voice is a reference id of a model in their library or one the
+     * customer cloned themselves; an empty id uses the account's default voice.
+     */
+    private static function fishAudio(string $text, string $voiceId, float $speed, array $settings = []): string
+    {
+        $key = (string) Settings::get('fishaudio_api_key', '');
+        if ($key === '') {
+            throw new \RuntimeException('Fish Audio is not configured.');
+        }
+        $model = (string) ($settings['fishaudio_model'] ?? '');
+        if (!isset(self::FISHAUDIO_MODELS[$model])) {
+            $model = (string) Settings::get('fishaudio_model', 's1');
+            if (!isset(self::FISHAUDIO_MODELS[$model])) {
+                $model = 's1';
+            }
+        }
+        $body = [
+            'text' => $text,
+            'format' => 'mp3',
+            'mp3_bitrate' => 128,
+            'normalize' => true,
+            'latency' => 'normal',
+        ];
+        // Reference ids are opaque strings from fish.audio; anything else is ignored rather than sent.
+        $voiceId = trim($voiceId);
+        if ($voiceId !== '' && preg_match('/^[A-Za-z0-9_-]{8,64}$/', $voiceId)) {
+            $body['reference_id'] = $voiceId;
+        }
+        if (abs($speed - 1.0) > 0.01) {
+            $body['prosody'] = ['speed' => max(0.5, min(2.0, $speed))];
+        }
+        $response = Http::postJson('https://api.fish.audio/v1/tts', $body, [
+            'Authorization' => 'Bearer ' . $key,
+            'model' => $model,
+            'Accept' => 'audio/mpeg',
+        ], ['timeout' => 60]);
+        if (!$response->ok()) {
+            $data = $response->json();
+            Logger::error('Fish Audio error ' . $response->status . ': ' . mb_substr((string) ($data['message'] ?? $data['detail'] ?? $response->body ?: $response->error), 0, 300));
             throw new \RuntimeException('Could not generate speech audio.');
         }
         return $response->body;

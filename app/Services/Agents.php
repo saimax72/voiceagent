@@ -288,7 +288,7 @@ final class Agents
 
     public static function voiceSettings(array $agent): array
     {
-        $defaults = ['elevenlabs_model' => '', 'stability' => 0.5, 'similarity' => 0.75, 'style' => 0.0, 'openai_instructions' => ''];
+        $defaults = ['elevenlabs_model' => '', 'fishaudio_model' => '', 'stability' => 0.5, 'similarity' => 0.75, 'style' => 0.0, 'openai_instructions' => ''];
         $stored = json_field($agent['voice_settings'] ?? null);
         $out = array_merge($defaults, array_intersect_key($stored, $defaults));
         foreach (['stability', 'similarity', 'style'] as $k) {

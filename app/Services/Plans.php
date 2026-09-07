@@ -37,7 +37,7 @@ final class Plans
                 ['3 AI agents', '2,000 messages / month', '200 website pages per agent', '25 documents per agent', 'Premium neural voices', 'Lead capture & email alerts', '90-day analytics'], 0, 1],
             ['pro', 'Pro', 'For growing teams that need more agents and volume.', 79, 790, ['agents' => 10, 'messages_per_month' => 10000, 'pages_per_agent' => 1000, 'documents_per_agent' => 100, 'storage_mb' => 1000, 'premium_voice' => 1, 'remove_branding' => 1, 'analytics_days' => 365],
                 ['10 AI agents', '10,000 messages / month', '1,000 website pages per agent', '100 documents per agent', 'Premium neural voices', 'Remove branding', 'Priority support', '1-year analytics'], 1, 2],
-            ['business', 'Business', 'High volume, unlimited agents, dedicated support.', 199, 1990, ['agents' => 100, 'messages_per_month' => 50000, 'pages_per_agent' => 5000, 'documents_per_agent' => 500, 'storage_mb' => 5000, 'premium_voice' => 1, 'remove_branding' => 1, 'analytics_days' => 730],
+            ['business', 'Business', 'High volume, unlimited agents, dedicated support.', 199, 1990, ['agents' => 0, 'messages_per_month' => 50000, 'pages_per_agent' => 5000, 'documents_per_agent' => 500, 'storage_mb' => 5000, 'premium_voice' => 1, 'remove_branding' => 1, 'analytics_days' => 730],
                 ['Unlimited AI agents', '50,000 messages / month', '5,000 website pages per agent', '500 documents per agent', 'Premium neural voices', 'Remove branding', 'Dedicated support', '2-year analytics'], 0, 3],
         ];
         foreach ($plans as [$key, $name, $desc, $pm, $py, $limits, $features, $featured, $sort]) {
@@ -116,5 +116,24 @@ final class Plans
     public static function allows(array $tenant, string $feature): bool
     {
         return self::limit($tenant, $feature) > 0;
+    }
+
+    /** A quantity limit of 0 (or less) means unlimited. */
+    public static function isUnlimited(int $limit): bool
+    {
+        return $limit <= 0;
+    }
+
+    /** True when the tenant has used up a quantity limit. Unlimited plans never hit it. */
+    public static function atLimit(array $tenant, string $name, int $current): bool
+    {
+        $limit = self::limit($tenant, $name);
+        return !self::isUnlimited($limit) && $current >= $limit;
+    }
+
+    /** Human label for a quantity limit. */
+    public static function limitLabel(int $limit): string
+    {
+        return self::isUnlimited($limit) ? 'unlimited' : format_number($limit);
     }
 }

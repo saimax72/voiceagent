@@ -51,6 +51,7 @@
               <option value="auto">Automatic (best available)</option>
               <option value="openai">Premium neural voice (OpenAI)</option>
               <option value="elevenlabs">Premium neural voice (ElevenLabs)</option>
+              <option value="fishaudio">Premium neural voice (Fish Audio)</option>
               <option value="browser">Browser voice (free)</option>
             </select>
           </div>

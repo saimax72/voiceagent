@@ -35,7 +35,7 @@ final class AgentController
     public function create(Request $request): Response
     {
         $tenant = current_tenant();
-        if (DB::instance()->count('agents', 'tenant_id = ?', [(int) $tenant['id']]) >= Plans::limit($tenant, 'agents')) {
+        if (Plans::atLimit($tenant, 'agents', DB::instance()->count('agents', 'tenant_id = ?', [(int) $tenant['id']]))) {
             flash('error', 'You have reached the number of agents included in your plan. Upgrade to add more.');
             return redirect('/billing');
         }
@@ -51,7 +51,7 @@ final class AgentController
     {
         $tenant = current_tenant();
         $tenantId = (int) $tenant['id'];
-        if (DB::instance()->count('agents', 'tenant_id = ?', [$tenantId]) >= Plans::limit($tenant, 'agents')) {
+        if (Plans::atLimit($tenant, 'agents', DB::instance()->count('agents', 'tenant_id = ?', [$tenantId]))) {
             flash('error', 'You have reached the number of agents included in your plan.');
             return redirect('/billing');
         }
@@ -153,6 +153,7 @@ final class AgentController
             'premiumVoice' => (int) ($plan['limits']['premium_voice'] ?? 0) === 1,
             'hasOpenAI' => Speech::hasOpenAI(),
             'hasElevenLabs' => Speech::hasElevenLabs(),
+            'hasFishAudio' => Speech::hasFishAudio(),
             'leadFields' => Agents::leadFields($agent),
             'variables' => Agents::TEMPLATE_VARIABLES,
             'responseLengths' => Agents::RESPONSE_LENGTHS,
@@ -168,7 +169,7 @@ final class AgentController
             'prompt_mode' => 'required|in:guided,custom', 'system_prompt' => 'nullable|max:12000', 'timezone' => 'nullable|max:60',
             'response_length' => 'required|in:short,medium,long', 'voice_response_length' => 'required|in:short,medium,long',
             'language' => 'required|max:10', 'llm_choice' => 'nullable|max:120', 'effort' => 'required|in:low,medium,high',
-            'tts_provider' => 'required|in:auto,openai,elevenlabs,browser', 'tts_voice' => 'nullable|max:80', 'tts_speed' => 'required|numeric|between:0.5,2',
+            'tts_provider' => 'required|in:auto,openai,elevenlabs,fishaudio,browser', 'tts_voice' => 'nullable|max:80', 'tts_speed' => 'required|numeric|between:0.5,2',
             'elevenlabs_model' => 'nullable|max:40', 'stability' => 'nullable|numeric|between:0,1', 'similarity' => 'nullable|numeric|between:0,1', 'style' => 'nullable|numeric|between:0,1', 'openai_instructions' => 'nullable|max:400',
             'stt_provider' => 'required|in:auto,browser', 'greeting_message' => 'nullable|max:1000', 'fallback_message' => 'nullable|max:1000',
             'lead_instructions' => 'nullable|max:2000', 'lead_notify_email' => 'nullable|email', 'allowed_domains' => 'nullable|max:2000',
@@ -230,6 +231,7 @@ final class AgentController
 
         $voiceSettings = [
             'elevenlabs_model' => isset(Speech::ELEVENLABS_MODELS[(string) ($d['elevenlabs_model'] ?? '')]) ? (string) $d['elevenlabs_model'] : '',
+            'fishaudio_model' => isset(Speech::FISHAUDIO_MODELS[$request->string('fishaudio_model')]) ? $request->string('fishaudio_model') : '',
             'stability' => round(max(0.0, min(1.0, (float) ($d['stability'] ?? 0.5))), 2),
             'similarity' => round(max(0.0, min(1.0, (float) ($d['similarity'] ?? 0.75))), 2),
             'style' => round(max(0.0, min(1.0, (float) ($d['style'] ?? 0))), 2),
@@ -310,12 +312,13 @@ final class AgentController
         if ($provider === 'auto') {
             $provider = Speech::ttsMode(['tts_provider' => 'auto'], true);
         }
-        if (!in_array($provider, ['openai', 'elevenlabs'], true) || ($provider === 'openai' && !Speech::hasOpenAI()) || ($provider === 'elevenlabs' && !Speech::hasElevenLabs())) {
+        if (!in_array($provider, ['openai', 'elevenlabs', 'fishaudio'], true) || ($provider === 'openai' && !Speech::hasOpenAI()) || ($provider === 'elevenlabs' && !Speech::hasElevenLabs()) || ($provider === 'fishaudio' && !Speech::hasFishAudio())) {
             return Response::json(['error' => 'This voice engine is not configured. Browser voices can only be previewed on your website.'], 422);
         }
-        $voice = preg_replace('/[^A-Za-z0-9_-]/', '', $request->string('voice')) ?: 'alloy';
+        $voice = preg_replace('/[^A-Za-z0-9_-]/', '', $request->string('voice')) ?: ($provider === 'fishaudio' ? '' : 'alloy');
         $settings = [
             'elevenlabs_model' => $request->string('elevenlabs_model'),
+            'fishaudio_model' => $request->string('fishaudio_model'),
             'stability' => $request->float('stability', 0.5),
             'similarity' => $request->float('similarity', 0.75),
             'style' => $request->float('style', 0.0),
@@ -355,7 +358,7 @@ final class AgentController
     {
         $tenant = current_tenant();
         $agent = Agents::findOrFail((int) $id, tenant_id());
-        if (DB::instance()->count('agents', 'tenant_id = ?', [(int) $tenant['id']]) >= Plans::limit($tenant, 'agents')) {
+        if (Plans::atLimit($tenant, 'agents', DB::instance()->count('agents', 'tenant_id = ?', [(int) $tenant['id']]))) {
             flash('error', 'You have reached the number of agents included in your plan.');
             return redirect('/billing');
         }

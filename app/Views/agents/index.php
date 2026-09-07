@@ -1,6 +1,6 @@
 <div class="page-header">
   <div><h1>AI Agents</h1><p>Each agent has its own knowledge, personality, voice and widget design.</p></div>
-  <div class="actions"><?php if (count($agents) < $limit): ?><a class="btn btn-primary" href="<?= e(url('/agents/new')) ?>">+ New agent</a><?php else: ?><a class="btn btn-secondary" href="<?= e(url('/billing')) ?>">Upgrade for more agents</a><?php endif; ?></div>
+  <div class="actions"><?php if (\App\Services\Plans::isUnlimited($limit) || count($agents) < $limit): ?><a class="btn btn-primary" href="<?= e(url('/agents/new')) ?>">+ New agent</a><?php else: ?><a class="btn btn-secondary" href="<?= e(url('/billing')) ?>">Upgrade for more agents</a><?php endif; ?></div>
 </div>
 <?php if (!$agents): ?>
   <div class="card"><div class="empty"><div class="empty-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="8" width="16" height="12" rx="3"/><path d="M12 8V4m-4 4h8M9 14h.01M15 14h.01"/></svg></div><h3>No agents yet</h3><p>Create an agent, teach it your website and documents, then embed it on your site with one line of code.</p><a class="btn btn-primary" href="<?= e(url('/agents/new')) ?>">Create your first agent</a></div></div>

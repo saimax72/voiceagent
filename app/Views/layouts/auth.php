@@ -9,52 +9,60 @@
 <link rel="stylesheet" href="<?= e(asset('assets/css/app.css')) ?>">
 <link rel="icon" href="<?= e(asset('assets/img/favicon.svg')) ?>" type="image/svg+xml">
 <style>
-  body { background: var(--surface); }
-  .auth-wrap { min-height: 100vh; display: grid; grid-template-columns: minmax(0, 1.05fr) minmax(0, 1fr); }
-  .auth-side { position: relative; display: flex; flex-direction: column; padding: 56px 64px 0; background: linear-gradient(180deg, #ffffff 0%, #f1f4fc 100%); border-right: 1px solid var(--border); overflow: hidden; }
-  .auth-copy { position: relative; z-index: 1; max-width: 540px; flex: 0 0 auto; }
-  .auth-copy .brand-logo img { height: 34px; width: auto; display: block; }
-  .auth-side h2 { font-size: 40px; line-height: 1.08; margin: 44px 0 16px; letter-spacing: -0.035em; color: var(--ink); }
-  .auth-side p { color: var(--text-2); font-size: 16px; line-height: 1.65; margin: 0; max-width: 480px; }
-  .auth-side ul { list-style: none; padding: 0; margin: 28px 0 0; display: flex; flex-direction: column; gap: 12px; }
-  .auth-side li { display: flex; gap: 12px; align-items: center; font-size: 15px; color: var(--text); font-weight: 600; }
-  .auth-side li span { width: 26px; height: 26px; border-radius: 5px; background: var(--primary-50); color: var(--primary); display: grid; place-items: center; font-size: 13px; font-weight: 800; flex-shrink: 0; }
-  .auth-art { display: block; margin: 28px -64px 0; flex: 0 0 auto; align-self: flex-end; width: calc(100% + 128px); height: auto; aspect-ratio: 2162 / 727; margin-top: auto; padding-top: 28px; object-fit: cover; object-position: center; pointer-events: none; user-select: none; -webkit-mask-image: linear-gradient(to bottom, transparent 0%, #000 30%); mask-image: linear-gradient(to bottom, transparent 0%, #000 30%); }
-  .auth-main { display: flex; align-items: center; justify-content: center; padding: 48px 24px; }
-  .auth-card { width: 100%; max-width: 440px; }
-  .auth-card h1 { font-size: 28px; margin-bottom: 6px; letter-spacing: -0.03em; }
+  body { background: #e8ecf4 radial-gradient(1200px 500px at 50% -180px, #f8fafd 0%, rgba(248,250,253,0) 70%) no-repeat; }
+  .auth-shell { max-width: 1080px; margin: 0 auto; min-height: 100vh; background: var(--surface); box-shadow: 0 0 0 1px rgba(20,27,37,.06), 0 30px 90px rgba(20,27,37,.10); display: flex; flex-direction: column; }
+  .auth-top { height: 72px; flex-shrink: 0; display: flex; align-items: center; gap: 16px; padding: 0 32px; border-bottom: 1px solid var(--border); }
+  .auth-top .brand-logo img { height: 32px; width: auto; display: block; }
+  .auth-top .home-link { margin-left: auto; display: inline-flex; align-items: center; gap: 7px; font-size: 14px; font-weight: 600; color: var(--text-2); }
+  .auth-top .home-link:hover { color: var(--ink); }
+  .auth-top .home-link svg { width: 16px; height: 16px; }
+  .auth-main { flex: 1; display: flex; align-items: center; justify-content: center; padding: 44px 24px 56px; }
+  .auth-card { width: 100%; max-width: 420px; }
+  .auth-card h1 { font-size: 27px; margin-bottom: 6px; letter-spacing: -0.03em; }
   .auth-card .lead { color: var(--text-3); margin-bottom: 26px; }
-  .auth-brand { display: none; margin-bottom: 30px; }
-  .auth-brand img { height: 30px; width: auto; display: block; }
+  .auth-points { list-style: none; padding: 0; margin: 30px 0 0; display: flex; flex-direction: column; gap: 9px; border-top: 1px solid var(--border); padding-top: 22px; }
+  .auth-points li { display: flex; gap: 10px; align-items: center; font-size: 13.5px; color: var(--text-2); }
+  .auth-points li span { width: 20px; height: 20px; border-radius: 5px; background: var(--primary-50); color: var(--primary); display: grid; place-items: center; font-size: 11px; font-weight: 800; flex-shrink: 0; }
   .auth-footer { margin-top: 22px; text-align: center; color: var(--text-3); font-size: 14px; }
-  @media (max-width: 900px) { .auth-wrap { grid-template-columns: 1fr; } .auth-side { display: none; } .auth-brand { display: block; } }
+  .auth-bottom { flex-shrink: 0; border-top: 1px solid var(--border); padding: 18px 32px; display: flex; align-items: center; gap: 16px; flex-wrap: wrap; font-size: 13px; color: var(--text-3); }
+  .auth-bottom a { color: var(--text-3); }
+  .auth-bottom a:hover { color: var(--ink); }
+  .auth-bottom .links { margin-left: auto; display: flex; gap: 18px; }
+  @media (max-width: 640px) {
+    .auth-top { padding: 0 20px; height: 64px; }
+    .auth-main { padding: 32px 20px 40px; }
+    .auth-bottom { padding: 16px 20px; }
+    .auth-bottom .links { margin-left: 0; width: 100%; }
+  }
 </style>
 </head>
 <body>
-<div class="auth-wrap">
-  <div class="auth-side">
-    <div class="auth-copy">
-      <a class="brand-logo" href="<?= e(url('/')) ?>"><img src="<?= e(asset('assets/img/logo.png')) ?>" alt="<?= e($app_name) ?>"></a>
-      <h2>Give your website a voice that answers every question.</h2>
-      <p>Train an AI assistant on your website and documents in minutes. Visitors can talk or type, and the assistant answers only from your approved knowledge.</p>
-      <ul>
-        <li><span>&#10003;</span> Learns from your website, PDFs and FAQs</li>
-        <li><span>&#10003;</span> Natural voice conversations with premium voices</li>
-        <li><span>&#10003;</span> Captures leads and shows unanswered questions</li>
-        <li><span>&#10003;</span> One line of code to install anywhere</li>
-      </ul>
-    </div>
-    <img class="auth-art" src="<?= e(asset('assets/img/banners/banner-1.webp')) ?>" srcset="<?= e(asset('assets/img/banners/banner-1-sm.webp')) ?> 960w, <?= e(asset('assets/img/banners/banner-1.webp')) ?> 1920w" sizes="55vw" alt="" aria-hidden="true">
-  </div>
-  <div class="auth-main">
+<div class="auth-shell">
+  <header class="auth-top">
+    <a class="brand-logo" href="<?= e(url('/')) ?>" aria-label="<?= e($app_name) ?> home"><img src="<?= e(asset('assets/img/logo.png')) ?>" alt="<?= e($app_name) ?>"></a>
+    <a class="home-link" href="<?= e(url('/')) ?>"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M11 18l-6-6 6-6"/></svg>Back to website</a>
+  </header>
+  <main class="auth-main">
     <div class="auth-card fade-in">
-      <a class="auth-brand" href="<?= e(url('/')) ?>"><img src="<?= e(asset('assets/img/logo.png')) ?>" alt="<?= e($app_name) ?>"></a>
       <?php foreach (\App\Core\Session::flashMessages() as $flash): ?>
         <div class="alert alert-<?= e($flash['type'] === 'error' ? 'error' : $flash['type']) ?>"><?= e($flash['message']) ?></div>
       <?php endforeach; ?>
       <?= $content ?>
+      <ul class="auth-points">
+        <li><span>&#10003;</span> Learns from your website, PDFs and FAQs</li>
+        <li><span>&#10003;</span> Natural voice conversations with premium voices</li>
+        <li><span>&#10003;</span> Captures leads and books appointments</li>
+      </ul>
     </div>
-  </div>
+  </main>
+  <footer class="auth-bottom">
+    <span>&copy; <?= date('Y') ?> <?= e($app_name) ?></span>
+    <span class="links">
+      <a href="<?= e(url('/')) ?>">Home</a>
+      <a href="<?= e(url('/pricing')) ?>">Pricing</a>
+      <?php if (\App\Services\Settings::bool('registration_enabled')): ?><a href="<?= e(url('/register')) ?>">Create account</a><?php endif; ?>
+    </span>
+  </footer>
 </div>
 </body>
 </html>

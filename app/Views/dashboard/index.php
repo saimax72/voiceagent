@@ -33,7 +33,7 @@ foreach ($series as $d) { $max = max($max, (int) $d['messages']); }
 <div class="grid grid-sidebar">
   <div class="stack">
     <div class="card">
-      <div class="card-header"><div><h3>Your AI agents</h3><div class="sub"><?= count($agents) ?> of <?= (int) $plan['limits']['agents'] ?> agents used</div></div><div class="actions"><a class="btn btn-primary btn-sm" href="<?= e(url('/agents/new')) ?>">+ New agent</a></div></div>
+      <div class="card-header"><div><h3>Your AI agents</h3><div class="sub"><?= count($agents) ?> of <?= \App\Services\Plans::limitLabel((int) ($plan['limits']['agents'] ?? 0)) ?> agents used</div></div><div class="actions"><a class="btn btn-primary btn-sm" href="<?= e(url('/agents/new')) ?>">+ New agent</a></div></div>
       <?php if (!$agents): ?>
         <div class="empty"><div class="empty-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="8" width="16" height="12" rx="3"/><path d="M12 8V4m-4 4h8M9 14h.01M15 14h.01"/></svg></div><h3>Create your first agent</h3><p>Enter your website, and your assistant will learn your content in minutes.</p><a class="btn btn-primary" href="<?= e(url('/onboarding')) ?>">Start setup</a></div>
       <?php else: ?>

@@ -117,6 +117,7 @@ $extraJson = json_encode($extraLangs, JSON_UNESCAPED_UNICODE | JSON_HEX_APOS | J
               <option value="auto">Automatic (best available)</option>
               <option value="openai" <?= $hasOpenAI ? '' : 'disabled' ?>>OpenAI neural voices<?= $hasOpenAI ? '' : ' - not configured' ?></option>
               <option value="elevenlabs" <?= $hasElevenLabs ? '' : 'disabled' ?>>ElevenLabs voices<?= $hasElevenLabs ? '' : ' - not configured' ?></option>
+              <option value="fishaudio" <?= $hasFishAudio ? '' : 'disabled' ?>>Fish Audio voices<?= $hasFishAudio ? '' : ' - not configured' ?></option>
               <option value="browser">Browser voice (free, device dependent)</option>
             </select>
           </div>
@@ -129,6 +130,7 @@ $extraJson = json_encode($extraLangs, JSON_UNESCAPED_UNICODE | JSON_HEX_APOS | J
               <button type="button" class="btn btn-secondary" title="Play a sample" @click="playVoice(ttsVoice)" :disabled="playing"><span x-show="!playing">&#9654; Play</span><span x-show="playing">&#9632; Stop</span></button>
             </div>
             <input class="form-control mt-2" x-show="engine() === 'elevenlabs'" placeholder="Custom ElevenLabs voice ID (optional)" @input="if ($event.target.value.trim()) ttsVoice = $event.target.value.trim()">
+            <div x-show="engine() === 'fishaudio'" x-cloak><input class="form-control" placeholder="Fish Audio reference ID (leave empty for the default voice)" x-model="ttsVoice"><div class="form-hint">Open a voice on <a href="https://fish.audio" target="_blank" rel="noopener">fish.audio</a> and copy the id from its address, or paste the id of a voice you cloned yourself.</div></div>
           </div>
         </div>
 
@@ -138,6 +140,9 @@ $extraJson = json_encode($extraLangs, JSON_UNESCAPED_UNICODE | JSON_HEX_APOS | J
           <div class="slider-row"><span>Similarity</span><input type="range" min="0" max="1" step="0.05" name="similarity" x-model.number="similarity"><span x-text="similarity"></span></div>
           <div class="slider-row"><span>Style</span><input type="range" min="0" max="1" step="0.05" name="style" x-model.number="style"><span x-text="style"></span></div>
           <div class="form-hint mb-3">Lower stability sounds more expressive, higher is more consistent. Style exaggeration makes the delivery more dramatic.</div>
+        </div>
+        <div x-show="engine() === 'fishaudio'" x-cloak>
+          <div class="form-group"><label class="form-label">Fish Audio model</label><select class="form-select" name="fishaudio_model"><option value="">Platform default</option><?php foreach (\App\Services\AI\Speech::FISHAUDIO_MODELS as $mid => $label): ?><option value="<?= e($mid) ?>" <?= ($vs['fishaudio_model'] ?? '') === $mid ? 'selected' : '' ?>><?= e($label) ?></option><?php endforeach; ?></select><div class="form-hint">S1 is the most expressive. Speech 1.6 is faster and cheaper.</div></div>
         </div>
         <div x-show="engine() === 'openai'" x-cloak>
           <div class="form-group"><label class="form-label">Speaking style instructions</label><input class="form-control" name="openai_instructions" value="<?= e($vs['openai_instructions'] ?? '') ?>" x-model="openaiInstructions" placeholder="Warm and calm, like a friendly receptionist. Slight smile in the voice."><div class="form-hint">Tell the voice how to sound: tone, emotion, pacing, accent.</div></div>
@@ -269,7 +274,7 @@ function agentSettings() {
     gen: { brief: '', loading: false },
     playing: false, audio: null,
     init() { this.$nextTick(() => { this.$refs.tts_voice && (this.$refs.tts_voice.value = this.ttsVoice); }); },
-    engine() { if (this.tts === 'elevenlabs') return 'elevenlabs'; if (this.tts === 'openai') return 'openai'; if (this.tts === 'browser') return 'browser'; return this.hasOpenAI ? 'openai' : (this.hasElevenLabs ? 'elevenlabs' : 'browser'); },
+    engine() { if (this.tts === 'elevenlabs') return 'elevenlabs'; if (this.tts === 'fishaudio') return 'fishaudio'; if (this.tts === 'openai') return 'openai'; if (this.tts === 'browser') return 'browser'; return this.hasOpenAI ? 'openai' : (this.hasElevenLabs ? 'elevenlabs' : 'browser'); },
     insertVar(ref, name) {
       const el = this.$refs[ref]; if (!el) return;
       const token = '{{' + name + '}}'; const start = el.selectionStart || el.value.length; const end = el.selectionEnd || start;
@@ -302,7 +307,7 @@ function agentSettings() {
       this.playing = true;
       try {
         const res = await fetch(VA.base + '/agents/<?= (int) $agent['id'] ?>/voice-preview', { method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': VA.csrf, 'X-Requested-With': 'XMLHttpRequest' },
-          body: JSON.stringify({ provider: engine, voice: voice, speed: this.speed, elevenlabs_model: (this.$el.querySelector('[name=elevenlabs_model]') || {}).value || '', stability: this.stability, similarity: this.similarity, style: this.style, openai_instructions: this.openaiInstructions }) });
+          body: JSON.stringify({ provider: engine, voice: voice, speed: this.speed, elevenlabs_model: (this.$el.querySelector('[name=elevenlabs_model]') || {}).value || '', fishaudio_model: (this.$el.querySelector('[name=fishaudio_model]') || {}).value || '', stability: this.stability, similarity: this.similarity, style: this.style, openai_instructions: this.openaiInstructions }) });
         if (!res.ok) { const d = await res.json().catch(() => ({})); throw new Error(d.error || 'Preview failed'); }
         const blob = await res.blob(); const url = URL.createObjectURL(blob);
         this.audio = new Audio(url); this.audio.onended = () => { this.playing = false; URL.revokeObjectURL(url); }; this.audio.onerror = () => { this.playing = false; };

@@ -103,7 +103,7 @@ final class OnboardingController
         }
         $v = Validator::make($request->all(), [
             'name' => 'required|min:2|max:120', 'business_name' => 'nullable|max:160', 'persona' => 'required|in:' . implode(',', array_keys(Agents::PERSONAS)),
-            'language' => 'required|max:10', 'tts_provider' => 'required|in:auto,openai,elevenlabs,browser', 'tts_voice' => 'nullable|max:80', 'greeting_message' => 'nullable|max:1000',
+            'language' => 'required|max:10', 'tts_provider' => 'required|in:auto,openai,elevenlabs,fishaudio,browser', 'tts_voice' => 'nullable|max:80', 'greeting_message' => 'nullable|max:1000',
         ]);
         if ($v->fails()) {
             flash('error', $v->firstError() ?? 'Please check the form.');

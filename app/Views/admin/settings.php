@@ -88,6 +88,10 @@ $testBtn = static fn(string $p, string $label) => '<button type="button" class="
   <?= $secret('elevenlabs_api_key', 'ElevenLabs API key', 'Premium voices from elevenlabs.io.') ?>
   <div class="form-group"><label class="form-label">ElevenLabs model</label><input class="form-control" name="elevenlabs_model" value="<?= $v('elevenlabs_model') ?>"><div class="form-hint">eleven_flash_v2_5 (fastest), eleven_turbo_v2_5 or eleven_multilingual_v2</div></div>
   <?= $testBtn('elevenlabs', 'Test ElevenLabs') ?>
+  <hr>
+  <?= $secret('fishaudio_api_key', 'Fish Audio API key', 'Voices from fish.audio, including voices your customers clone themselves. Free tier available.') ?>
+  <div class="form-group"><label class="form-label">Fish Audio model</label><select class="form-select" name="fishaudio_model"><?php foreach (\App\Services\AI\Speech::FISHAUDIO_MODELS as $mk => $ml): ?><option value="<?= e($mk) ?>" <?= $v('fishaudio_model', 's1') === $mk ? 'selected' : '' ?>><?= e($ml) ?></option><?php endforeach; ?></select><div class="form-hint">Default speech model. Each agent picks its voice with a reference id from fish.audio.</div></div>
+  <?= $testBtn('fishaudio', 'Test Fish Audio') ?>
 
 <?php elseif ($tab === 'documents'): ?>
   <div class="form-group"><label class="form-label">PDF text extraction</label><select class="form-select" name="pdf_extraction"><?php foreach (['auto' => 'Built-in extraction, AI reading as fallback for scanned PDFs', 'native' => 'Built-in extraction only (no AI cost)', 'ai' => 'Always use Claude to read PDFs (best quality, uses tokens)'] as $k => $l): ?><option value="<?= $k ?>" <?= ($values['pdf_extraction'] ?? 'auto') === $k ? 'selected' : '' ?>><?= $l ?></option><?php endforeach; ?></select></div>

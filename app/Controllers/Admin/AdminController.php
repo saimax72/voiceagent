@@ -189,7 +189,7 @@ final class AdminController
         'general' => ['app_name', 'support_email', 'registration_enabled', 'default_plan', 'trial_plan', 'trial_days', 'widget_branding_text', 'demo_agent_public_id', 'lead_notifications', 'email_verification_notice'],
         'ai' => ['llm_provider', 'anthropic_api_key', 'anthropic_model', 'anthropic_fallbacks', 'openai_api_key', 'openai_model', 'compatible_base_url', 'compatible_api_key', 'compatible_model', 'llm_effort', 'llm_max_tokens',
             'embeddings_provider', 'openai_embedding_model', 'voyage_api_key', 'voyage_embedding_model', 'embedding_dimensions', 'retrieval_top_k', 'retrieval_min_score', 'chunk_size', 'chunk_overlap'],
-        'voice' => ['stt_provider', 'openai_stt_model', 'tts_provider', 'openai_tts_model', 'elevenlabs_api_key', 'elevenlabs_model'],
+        'voice' => ['stt_provider', 'openai_stt_model', 'tts_provider', 'openai_tts_model', 'elevenlabs_api_key', 'elevenlabs_model', 'fishaudio_api_key', 'fishaudio_model'],
         'documents' => ['pdf_extraction', 'crawler_max_pages_default', 'crawler_timeout', 'crawler_user_agent'],
         'billing' => ['stripe_enabled', 'stripe_publishable_key', 'stripe_secret_key', 'stripe_webhook_secret'],
         'mail' => ['mail_driver', 'mail_from_email', 'mail_from_name', 'smtp_host', 'smtp_port', 'smtp_encryption', 'smtp_username', 'smtp_password'],
@@ -284,6 +284,9 @@ final class AdminController
                 case 'openai_tts':
                     $audio = \App\Services\AI\Speech::synthesize('Hello from VoiceAgent. Test ' . time(), 'openai', 'alloy', 1.0);
                     return Response::json(['ok' => true, 'message' => 'OpenAI speech OK (' . human_filesize(strlen($audio['audio'])) . ' of audio generated).']);
+                case 'fishaudio':
+                    $audio = \App\Services\AI\Speech::synthesize('Hello from VoiceAgent. Test ' . time(), 'fishaudio', '', 1.0);
+                    return Response::json(['ok' => true, 'message' => 'Fish Audio OK (' . human_filesize(strlen($audio['audio'])) . ' of audio generated).']);
                 case 'mail':
                     $ok = \App\Core\Mailer::send((string) current_user()['email'], 'Test email from ' . app_name(), '<p>This is a test email. Your mail settings work.</p>');
                     return Response::json(['ok' => $ok, 'message' => $ok ? 'Test email sent to ' . current_user()['email'] . '.' : 'Sending failed. Check storage/logs for details.']);

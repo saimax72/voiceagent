@@ -16,7 +16,7 @@ final class Settings
     private static ?array $cache = null;
 
     public const SECRET_KEYS = [
-        'anthropic_api_key', 'openai_api_key', 'voyage_api_key', 'elevenlabs_api_key', 'compatible_api_key',
+        'anthropic_api_key', 'openai_api_key', 'voyage_api_key', 'elevenlabs_api_key', 'fishaudio_api_key', 'compatible_api_key',
         'stripe_secret_key', 'stripe_webhook_secret', 'smtp_password',
     ];
 
@@ -59,6 +59,8 @@ final class Settings
             'openai_tts_model' => 'gpt-4o-mini-tts',
             'elevenlabs_api_key' => '',
             'elevenlabs_model' => 'eleven_flash_v2_5',
+            'fishaudio_api_key' => '',
+            'fishaudio_model' => 's1',
             // Documents / crawling
             'pdf_extraction' => 'auto',
             'crawler_max_pages_default' => '100',
