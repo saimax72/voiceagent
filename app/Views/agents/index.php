@@ -16,9 +16,9 @@
           <?= $a['status'] === 'active' ? '<span class="badge badge-success"><span class="dot"></span>Active</span>' : '<span class="badge badge-neutral">Paused</span>' ?>
         </div>
         <div class="grid grid-3" style="gap:8px;text-align:center">
-          <div style="background:var(--surface-2);border-radius:12px;padding:10px"><div class="font-bold text-lg"><?= format_number((int) $a['conversations_count']) ?></div><div class="text-xs text-muted">Chats</div></div>
-          <div style="background:var(--surface-2);border-radius:12px;padding:10px"><div class="font-bold text-lg"><?= format_number((int) $a['leads_count']) ?></div><div class="text-xs text-muted">Leads</div></div>
-          <div style="background:var(--surface-2);border-radius:12px;padding:10px"><div class="font-bold text-lg"><?= format_number((int) $a['documents_indexed']) ?></div><div class="text-xs text-muted">Pages</div></div>
+          <div style="background:var(--surface-2);border-radius:8px;padding:10px"><div class="font-bold text-lg"><?= format_number((int) $a['conversations_count']) ?></div><div class="text-xs text-muted">Chats</div></div>
+          <div style="background:var(--surface-2);border-radius:8px;padding:10px"><div class="font-bold text-lg"><?= format_number((int) $a['leads_count']) ?></div><div class="text-xs text-muted">Leads</div></div>
+          <div style="background:var(--surface-2);border-radius:8px;padding:10px"><div class="font-bold text-lg"><?= format_number((int) $a['documents_indexed']) ?></div><div class="text-xs text-muted">Pages</div></div>
         </div>
         <div class="text-xs text-muted mt-3"><?= $a['last_trained_at'] ? 'Trained ' . e(time_ago($a['last_trained_at'])) : '<span class="text-warning">Not trained yet - add knowledge</span>' ?></div>
       </div>

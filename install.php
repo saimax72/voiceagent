@@ -9,7 +9,7 @@ declare(strict_types=1);
 
 define('APP_ROOT', __DIR__);
 define('APP_PATH', __DIR__ . '/app');
-define('APP_VERSION', '1.1.0');
+define('APP_VERSION', '1.2.0');
 error_reporting(E_ALL);
 ini_set('display_errors', '1');
 
@@ -172,25 +172,25 @@ $e = static fn($v) => htmlspecialchars((string) $v, ENT_QUOTES, 'UTF-8');
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Install VoiceAgent</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <style>
-*{box-sizing:border-box}body{margin:0;font-family:Inter,system-ui,sans-serif;background:#f5f6fa;color:#0f172a;-webkit-font-smoothing:antialiased}
-.wrap{max-width:760px;margin:40px auto;padding:0 20px}.card{background:#fff;border:1px solid #e6e8ef;border-radius:18px;padding:32px;box-shadow:0 10px 40px rgba(15,23,42,.06);margin-bottom:20px}
+*{box-sizing:border-box}body{margin:0;font-family:Manrope,Inter,system-ui,sans-serif;background:#f6f7f9;color:#141b25;-webkit-font-smoothing:antialiased}
+.wrap{max-width:760px;margin:40px auto;padding:0 20px}.card{background:#fff;border:1px solid #e6e8ee;border-radius:10px;padding:32px;box-shadow:0 10px 40px rgba(15,23,42,.06);margin-bottom:20px}
 h1{font-size:26px;margin:0 0 6px}h2{font-size:17px;margin:28px 0 12px}p{color:#475569;line-height:1.6}.brand{display:flex;align-items:center;gap:12px;margin-bottom:24px}
-.logo{width:44px;height:44px;border-radius:12px;background:linear-gradient(135deg,#6366f1,#8b5cf6);display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700}
+.logo{width:44px;height:44px;border-radius:10px;background:#141b25;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:800}
 .grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}label{display:block;font-size:13px;font-weight:600;margin-bottom:6px}
-input{width:100%;padding:11px 13px;border:1px solid #d7dbe7;border-radius:10px;font:inherit;font-size:14px}input:focus{outline:none;border-color:#6366f1;box-shadow:0 0 0 3px rgba(99,102,241,.15)}
-.field{margin-bottom:14px}.hint{font-size:12px;color:#64748b;margin-top:4px}.btn{background:#6366f1;color:#fff;border:0;padding:13px 22px;border-radius:10px;font:inherit;font-weight:600;font-size:15px;cursor:pointer}
-.btn:hover{background:#4f46e5}.req{list-style:none;padding:0;margin:0}.req li{display:flex;justify-content:space-between;padding:9px 0;border-bottom:1px solid #f1f3f8;font-size:14px}
-.ok{color:#059669;font-weight:600}.bad{color:#dc2626;font-weight:600}.opt{color:#d97706;font-weight:600}.alert{padding:12px 14px;border-radius:10px;margin-bottom:16px;font-size:14px}
+input{width:100%;padding:11px 13px;border:1px solid #d0d5dd;border-radius:6px;font:inherit;font-size:14px}input:focus{outline:none;border-color:#0052fc;box-shadow:0 0 0 3px rgba(0,82,252,.15)}
+.field{margin-bottom:14px}.hint{font-size:12px;color:#64748b;margin-top:4px}.btn{background:#0052fc;color:#fff;border:0;padding:13px 22px;border-radius:5px;font:inherit;font-weight:700;font-size:15px;cursor:pointer}
+.btn:hover{background:#0043d9}.req{list-style:none;padding:0;margin:0}.req li{display:flex;justify-content:space-between;padding:9px 0;border-bottom:1px solid #f1f3f8;font-size:14px}
+.ok{color:#059669;font-weight:600}.bad{color:#dc2626;font-weight:600}.opt{color:#d97706;font-weight:600}.alert{padding:12px 14px;border-radius:8px;margin-bottom:16px;font-size:14px}
 .alert-error{background:#fef2f2;color:#991b1b;border:1px solid #fecaca}.alert-success{background:#ecfdf5;color:#065f46;border:1px solid #a7f3d0}
-code{background:#f1f3f8;padding:2px 6px;border-radius:6px;font-size:13px;word-break:break-all}pre{background:#0f172a;color:#e2e8f0;padding:14px;border-radius:10px;font-size:13px;overflow:auto}
+code{background:#f1f3f8;padding:2px 6px;border-radius:6px;font-size:13px;word-break:break-all}pre{background:#141b25;color:#e2e8f0;padding:14px;border-radius:8px;font-size:13px;overflow:auto}
 @media(max-width:640px){.grid{grid-template-columns:1fr}.card{padding:22px}}
 </style>
 </head>
 <body>
 <div class="wrap">
-  <div class="brand"><div class="logo">VA</div><div><strong>VoiceAgent</strong><div style="font-size:13px;color:#64748b">Installer v<?= APP_VERSION ?></div></div></div>
+  <div class="brand"><div class="logo"><svg width="26" height="26" viewBox="0 0 64 64" fill="#0052FC"><rect x="3" y="4" width="9" height="34" rx="4.5"/><rect x="16" y="15" width="9" height="34" rx="4.5"/><rect x="29" y="26" width="9" height="34" rx="4.5"/><rect x="42" y="15" width="9" height="34" rx="4.5"/><rect x="55" y="4" width="9" height="34" rx="4.5"/></svg></div><div><strong>VoiceAgent</strong><div style="font-size:13px;color:#64748b">Installer v<?= APP_VERSION ?></div></div></div>
 
 <?php if ($success): ?>
   <div class="card">

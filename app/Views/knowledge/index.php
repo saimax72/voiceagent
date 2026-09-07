@@ -90,7 +90,7 @@ $badge = static fn(string $s) => match ($s) { 'ready' => '<span class="badge bad
         <?= csrf_field() ?>
         <div class="form-group"><label class="form-label">Group title</label><input class="form-control" name="title" value="FAQ" required></div>
         <template x-for="(f, i) in faqs" :key="i">
-          <div class="form-group" style="padding:12px;border:1px solid var(--border);border-radius:12px">
+          <div class="form-group" style="padding:12px;border:1px solid var(--border);border-radius:8px">
             <input class="form-control mb-2" name="question[]" placeholder="Question" x-model="f.q">
             <textarea class="form-control" name="answer[]" rows="3" placeholder="Answer" x-model="f.a"></textarea>
             <button type="button" class="btn btn-ghost btn-sm mt-2" x-show="faqs.length > 1" @click="faqs.splice(i,1)">Remove</button>

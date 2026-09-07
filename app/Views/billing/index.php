@@ -12,7 +12,7 @@
   </div>
   <div class="card"><div class="card-header"><h3>Messages, last 6 months</h3></div><div class="card-body">
     <?php $max = max(1, max($history)); ?>
-    <svg viewBox="0 0 100 34" preserveAspectRatio="none" style="width:100%;height:110px;display:block"><?php $i = 0; $w = 100 / max(1, count($history)); foreach ($history as $period => $v): $h = $v / $max * 28; ?><rect x="<?= $i * $w + $w * .2 ?>" y="<?= 32 - $h ?>" width="<?= $w * .6 ?>" height="<?= max(.5, $h) ?>" rx=".8" fill="#5b5bd6"><title><?= e($period) ?>: <?= $v ?></title></rect><?php $i++; endforeach; ?></svg>
+    <svg viewBox="0 0 100 34" preserveAspectRatio="none" style="width:100%;height:110px;display:block"><?php $i = 0; $w = 100 / max(1, count($history)); foreach ($history as $period => $v): $h = $v / $max * 28; ?><rect x="<?= $i * $w + $w * .2 ?>" y="<?= 32 - $h ?>" width="<?= $w * .6 ?>" height="<?= max(.5, $h) ?>" rx=".8" fill="#0052fc"><title><?= e($period) ?>: <?= $v ?></title></rect><?php $i++; endforeach; ?></svg>
     <div class="flex justify-between text-xs text-muted mt-2"><?php foreach ($history as $period => $v): ?><span><?= e(date('M', strtotime($period . '-01'))) ?></span><?php endforeach; ?></div>
   </div></div>
 </div>

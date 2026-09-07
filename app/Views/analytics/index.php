@@ -34,11 +34,11 @@ $fbTotal = $feedback['up'] + $feedback['down'];
         <svg viewBox="0 0 100 36" preserveAspectRatio="none" style="width:100%;height:200px;display:block" role="img" aria-label="Activity chart">
           <?php $i = 0; foreach ($series as $day => $d): $h = ($d['messages'] / $maxMsg) * 30; ?>
             <rect x="<?= $i * $w + $w * 0.2 ?>" y="<?= 34 - $h ?>" width="<?= $w * 0.6 ?>" height="<?= max(0.4, $h) ?>" rx="0.6" fill="<?= $d['messages'] > 0 ? '#c7d2fe' : '#eef0f6' ?>"><title><?= e($day) ?>: <?= $d['messages'] ?> messages (<?= $d['voice_messages'] ?> voice), <?= $d['conversations'] ?> conversations, <?= $d['leads'] ?> leads</title></rect>
-            <?php $vh = ($d['voice_messages'] / $maxMsg) * 30; if ($vh > 0): ?><rect x="<?= $i * $w + $w * 0.2 ?>" y="<?= 34 - $vh ?>" width="<?= $w * 0.6 ?>" height="<?= $vh ?>" rx="0.6" fill="#5b5bd6"></rect><?php endif; ?>
+            <?php $vh = ($d['voice_messages'] / $maxMsg) * 30; if ($vh > 0): ?><rect x="<?= $i * $w + $w * 0.2 ?>" y="<?= 34 - $vh ?>" width="<?= $w * 0.6 ?>" height="<?= $vh ?>" rx="0.6" fill="#0052fc"></rect><?php endif; ?>
           <?php $i++; endforeach; ?>
           <polyline points="<?= implode(' ', $points) ?>" fill="none" stroke="#10b981" stroke-width="0.6" vector-effect="non-scaling-stroke"></polyline>
         </svg>
-        <div class="flex justify-between text-xs text-muted mt-2"><span><?= e(format_date($labels[0] . ' 00:00:00', 'M j')) ?></span><span class="flex gap-3"><span><span style="display:inline-block;width:10px;height:10px;background:#5b5bd6;border-radius:2px"></span> voice</span><span><span style="display:inline-block;width:10px;height:10px;background:#c7d2fe;border-radius:2px"></span> text</span><span><span style="display:inline-block;width:10px;height:3px;background:#10b981"></span> conversations</span></span><span>Today</span></div>
+        <div class="flex justify-between text-xs text-muted mt-2"><span><?= e(format_date($labels[0] . ' 00:00:00', 'M j')) ?></span><span class="flex gap-3"><span><span style="display:inline-block;width:10px;height:10px;background:#0052fc;border-radius:2px"></span> voice</span><span><span style="display:inline-block;width:10px;height:10px;background:#c7d7ff;border-radius:2px"></span> text</span><span><span style="display:inline-block;width:10px;height:3px;background:#10b981"></span> conversations</span></span><span>Today</span></div>
       </div>
     </div>
     <div class="grid grid-2">
@@ -47,7 +47,7 @@ $fbTotal = $feedback['up'] + $feedback['down'];
         <div class="table-wrap"><table class="table table-compact"><tbody><?php foreach ($topQuestions as $q): ?><tr><td class="text-sm"><?= e(str_limit($q['q'], 70)) ?></td><td class="text-right muted"><?= (int) $q['n'] ?>x</td></tr><?php endforeach; ?></tbody></table></div><?php endif; ?>
       </div>
       <div class="card"><div class="card-header"><h3>Busiest hours (UTC)</h3></div><div class="card-body">
-        <svg viewBox="0 0 96 30" preserveAspectRatio="none" style="width:100%;height:120px;display:block"><?php foreach ($hours as $h => $count): $bh = ($count / $maxHour) * 26; ?><rect x="<?= $h * 4 + 0.5 ?>" y="<?= 28 - $bh ?>" width="3" height="<?= max(0.4, $bh) ?>" rx="0.5" fill="<?= $count > 0 ? '#8b5cf6' : '#eef0f6' ?>"><title><?= $h ?>:00 - <?= $count ?> messages</title></rect><?php endforeach; ?></svg>
+        <svg viewBox="0 0 96 30" preserveAspectRatio="none" style="width:100%;height:120px;display:block"><?php foreach ($hours as $h => $count): $bh = ($count / $maxHour) * 26; ?><rect x="<?= $h * 4 + 0.5 ?>" y="<?= 28 - $bh ?>" width="3" height="<?= max(0.4, $bh) ?>" rx="0.5" fill="<?= $count > 0 ? '#0052fc' : '#eef0f6' ?>"><title><?= $h ?>:00 - <?= $count ?> messages</title></rect><?php endforeach; ?></svg>
         <div class="flex justify-between text-xs text-muted mt-1"><span>0h</span><span>6h</span><span>12h</span><span>18h</span><span>24h</span></div>
       </div></div>
     </div>

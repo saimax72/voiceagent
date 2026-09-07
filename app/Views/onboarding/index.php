@@ -2,9 +2,10 @@
 
 <?php if ($step === 1): ?>
 <div class="card max-w-lg" style="margin:0 auto">
+  <img class="card-banner" src="<?= e(asset('assets/img/banners/banner-3.webp')) ?>" srcset="<?= e(asset('assets/img/banners/banner-3-sm.webp')) ?> 960w, <?= e(asset('assets/img/banners/banner-3.webp')) ?> 1920w" sizes="720px" alt="" aria-hidden="true">
   <div class="card-body" style="padding:36px">
     <div class="text-center mb-6">
-      <div class="empty-icon" style="width:64px;height:64px;border-radius:20px;margin:0 auto 16px;background:var(--primary-50);color:var(--primary-600);display:grid;place-items:center"><svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a14 14 0 0 1 0 18M12 3a14 14 0 0 0 0 18"/></svg></div>
+      <div class="empty-icon" style="width:64px;height:64px;border-radius:12px;margin:0 auto 16px;background:var(--primary-50);color:var(--primary-600);display:grid;place-items:center"><svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a14 14 0 0 1 0 18M12 3a14 14 0 0 0 0 18"/></svg></div>
       <h1>What is your website?</h1>
       <p class="text-muted" style="max-width:460px;margin:8px auto 0">Your assistant will read your pages and learn your products, services, pricing and policies. You can add documents and FAQs later.</p>
     </div>

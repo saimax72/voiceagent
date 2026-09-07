@@ -40,7 +40,7 @@ $extensions = \App\Services\Knowledge\DocumentExtractor::ALLOWED_EXTENSIONS;
   <div x-show="ktab==='faq'" x-cloak>
     <div class="form-hint mb-3">Add the questions visitors ask most, with the exact answer you want given.</div>
     <template x-for="(f, i) in faqs" :key="i">
-      <div class="form-group" style="padding:12px;border:1px solid var(--border);border-radius:12px">
+      <div class="form-group" style="padding:12px;border:1px solid var(--border);border-radius:8px">
         <input class="form-control mb-2" name="faq_question[]" placeholder="Question, e.g. Do you offer free delivery?" x-model="f.q">
         <textarea class="form-control" name="faq_answer[]" rows="2" placeholder="Answer" x-model="f.a"></textarea>
         <button type="button" class="btn btn-ghost btn-sm mt-2" x-show="faqs.length > 1" @click="faqs.splice(i, 1)">Remove</button>

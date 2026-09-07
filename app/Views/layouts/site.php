@@ -6,7 +6,7 @@
 <title><?= e($title ?? $app_name) ?></title>
 <meta name="description" content="Add an AI voice and chat assistant to your website in minutes. It learns your website and documents and answers visitors by voice or text.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="<?= e(asset('assets/css/app.css')) ?>">
 <link rel="stylesheet" href="<?= e(asset('assets/css/site.css')) ?>">
 <link rel="icon" href="<?= e(asset('assets/img/favicon.svg')) ?>" type="image/svg+xml">
@@ -14,7 +14,7 @@
 <body class="site">
 <header class="site-header">
   <div class="container flex items-center gap-4">
-    <a href="<?= e(url('/')) ?>" class="site-logo"><span class="brand-mark"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M12 3v18M7 8v8M17 8v8M3 11v2M21 11v2"/></svg></span><?= e($app_name) ?></a>
+    <a href="<?= e(url('/')) ?>" class="site-logo"><img src="<?= e(asset('assets/img/logo.png')) ?>" alt="<?= e($app_name) ?>"></a>
     <nav class="site-nav ml-auto">
       <a href="<?= e(url('/#features')) ?>">Features</a>
       <a href="<?= e(url('/#how')) ?>">How it works</a>

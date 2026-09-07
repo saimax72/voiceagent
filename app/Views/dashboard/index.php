@@ -8,6 +8,21 @@ foreach ($series as $d) { $max = max($max, (int) $d['messages']); }
   <div class="alert alert-warning"><span>The platform's AI provider is not configured yet. Assistants will start answering as soon as the administrator adds an API key.</span></div>
 <?php endif; ?>
 
+<?php $firstName = trim(explode(' ', trim((string) (auth()->user()['name'] ?? '')))[0]); ?>
+<div class="banner-card mb-6">
+  <img class="banner-bg" src="<?= e(asset('assets/img/banners/banner-5.webp')) ?>" srcset="<?= e(asset('assets/img/banners/banner-5-sm.webp')) ?> 960w, <?= e(asset('assets/img/banners/banner-5.webp')) ?> 1920w" sizes="(max-width: 900px) 100vw, 1100px" alt="" aria-hidden="true">
+  <div class="banner-content">
+    <div class="banner-kicker"><?= e(current_tenant()['name'] ?? 'Overview') ?></div>
+    <h2>Welcome back<?= $firstName !== '' ? ', ' . e($firstName) : '' ?></h2>
+    <p><?php if ($stats['agents'] > 0): ?>Your <?= $stats['agents'] === 1 ? 'agent has' : 'agents have' ?> answered <strong><?= format_number($stats['messages']) ?></strong> messages this month and captured <strong><?= format_number($stats['leads']) ?></strong> leads.<?php else: ?>Create your first AI agent, teach it your website and install it with one line of code.<?php endif; ?></p>
+    <div class="flex gap-2 wrap">
+      <a class="btn btn-primary btn-sm" href="<?= e(url('/agents/new')) ?>">+ New agent</a>
+      <a class="btn btn-secondary btn-sm" href="<?= e(url('/conversations')) ?>">Conversations</a>
+      <a class="btn btn-secondary btn-sm" href="<?= e(url('/analytics')) ?>">Analytics</a>
+    </div>
+  </div>
+</div>
+
 <div class="grid grid-4 mb-6">
   <div class="card stat"><div class="flex"><div><div class="stat-label">Conversations this month</div><div class="stat-value"><?= format_number($stats['conversations']) ?></div></div><div class="stat-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12a8 8 0 0 1-8 8H8l-5 3 1.5-4.5A8 8 0 1 1 21 12z"/></svg></div></div></div>
   <div class="card stat"><div class="flex"><div><div class="stat-label">Messages answered</div><div class="stat-value"><?= format_number($stats['messages']) ?></div><div class="stat-delta"><?= format_number($stats['voice_messages']) ?> by voice</div></div><div class="stat-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></svg></div></div></div>
@@ -45,7 +60,7 @@ foreach ($series as $d) { $max = max($max, (int) $d['messages']); }
         <?php $count = count($series); $w = 100 / max(1, $count); ?>
         <svg viewBox="0 0 100 34" preserveAspectRatio="none" style="width:100%;height:120px;display:block" role="img" aria-label="Messages per day">
           <?php $i = 0; foreach ($series as $day => $d): $h = $max > 0 ? ($d['messages'] / $max) * 28 : 0; ?>
-            <rect x="<?= $i * $w + $w * 0.15 ?>" y="<?= 32 - $h ?>" width="<?= $w * 0.7 ?>" height="<?= max(0.6, $h) ?>" rx="0.8" fill="<?= $d['messages'] > 0 ? '#5b5bd6' : '#e2e8f0' ?>"><title><?= e($day) ?>: <?= $d['messages'] ?> messages, <?= $d['conversations'] ?> conversations</title></rect>
+            <rect x="<?= $i * $w + $w * 0.15 ?>" y="<?= 32 - $h ?>" width="<?= $w * 0.7 ?>" height="<?= max(0.6, $h) ?>" rx="0.8" fill="<?= $d['messages'] > 0 ? '#0052fc' : '#e2e8f0' ?>"><title><?= e($day) ?>: <?= $d['messages'] ?> messages, <?= $d['conversations'] ?> conversations</title></rect>
           <?php $i++; endforeach; ?>
         </svg>
         <div class="flex justify-between text-xs text-muted mt-2"><span><?= e(format_date(array_key_first($series) . ' 00:00:00', 'M j')) ?></span><span>Today</span></div>

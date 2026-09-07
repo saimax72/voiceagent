@@ -2,7 +2,7 @@
 /** @var int $current */
 $steps = [1 => 'Website', 2 => 'AI agent', 3 => 'Design', 4 => 'Test', 5 => 'Install'];
 ?>
-<div class="card mb-6" style="background:linear-gradient(135deg,#eef2ff,#faf5ff)">
+<div class="card mb-6" style="background:linear-gradient(135deg,#eef3ff,#f8f9fc)">
   <div class="card-body" style="padding:16px 22px;display:flex;align-items:center;gap:18px;flex-wrap:wrap">
     <div class="steps">
       <?php foreach ($steps as $n => $label): ?>

@@ -1,10 +1,18 @@
 <section class="hero">
+  <img class="hero-art" src="<?= e(asset('assets/img/banners/banner-1.webp')) ?>" srcset="<?= e(asset('assets/img/banners/banner-1-sm.webp')) ?> 960w, <?= e(asset('assets/img/banners/banner-1.webp')) ?> 1920w" sizes="100vw" alt="" aria-hidden="true" fetchpriority="high">
   <div class="container">
-    <span class="eyebrow">&#10024; Voice + text AI assistant for any website</span>
-    <h1>Let visitors <span>talk</span> to your website</h1>
-    <p class="lead">Train an AI agent on your website, PDFs and FAQs in minutes. Visitors ask by voice or text and get accurate answers from your own content. Leads are captured automatically.</p>
-    <div class="hero-actions"><a class="btn btn-primary btn-lg" href="<?= e(url('/register')) ?>">Start free</a><a class="btn btn-secondary btn-lg" href="<?= e(url('/#how')) ?>">See how it works</a></div>
-    <div class="hero-note">Free plan included &middot; No credit card &middot; One line of code to install</div>
+    <div class="hero-copy">
+      <span class="eyebrow">&#10024; Voice + text AI assistant for any website</span>
+      <h1>Let visitors <span>talk</span> to your website</h1>
+      <p class="lead">Train an AI agent on your website, PDFs and FAQs in minutes. Visitors ask by voice or text and get accurate answers from your own content. Leads are captured automatically.</p>
+      <div class="hero-actions"><a class="btn btn-primary btn-lg" href="<?= e(url('/register')) ?>">Start free</a><a class="btn btn-secondary btn-lg" href="<?= e(url('/#how')) ?>">See how it works</a></div>
+      <div class="hero-note">Free plan included &middot; No credit card &middot; One line of code to install</div>
+    </div>
+  </div>
+</section>
+
+<section class="showcase">
+  <div class="container">
     <div class="mock">
       <div class="lines"><div class="bar" style="width:40%;height:18px;background:#cbd5e1"></div><div class="bar" style="width:90%"></div><div class="bar" style="width:75%"></div><div class="bar" style="width:60%"></div><div class="bar" style="width:80%;margin-top:30px"></div><div class="bar" style="width:55%"></div></div>
       <div class="mock-widget">
@@ -63,5 +71,5 @@
 </section>
 
 <section class="section" style="padding-top:0">
-  <div class="container"><div class="cta"><h2>Give your website a voice today</h2><p>Set up your first AI agent in minutes. No developer needed.</p><a class="btn btn-lg" style="background:#fff;color:#312e81" href="<?= e(url('/register')) ?>">Create your free account</a></div></div>
+  <div class="container"><div class="cta"><h2>Give your website a voice today</h2><p>Set up your first AI agent in minutes. No developer needed.</p><a class="btn btn-lg" style="background:#fff;color:#141b25" href="<?= e(url('/register')) ?>">Create your free account</a></div></div>
 </section>

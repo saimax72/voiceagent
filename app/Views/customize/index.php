@@ -4,15 +4,15 @@
   .cz-layout { display: grid; grid-template-columns: 420px minmax(0, 1fr); gap: 20px; align-items: start; }
   .cz-panel { max-height: calc(100vh - 140px); overflow-y: auto; }
   .cz-preview { position: sticky; top: 84px; }
-  .cz-preview iframe { width: 100%; height: calc(100vh - 170px); min-height: 620px; border: 0; border-radius: 16px; background: #f8fafc; }
+  .cz-preview iframe { width: 100%; height: calc(100vh - 170px); min-height: 620px; border: 0; border-radius: 12px; background: #f8fafc; }
   .cz-section { padding: 16px 20px; border-bottom: 1px solid var(--border); }
   .cz-section h4 { margin-bottom: 12px; font-size: 13px; text-transform: uppercase; letter-spacing: .06em; color: var(--text-3); }
   .icon-pick { display: flex; gap: 8px; flex-wrap: wrap; }
-  .icon-pick label { width: 46px; height: 46px; border: 1px solid var(--border); border-radius: 12px; display: grid; place-items: center; cursor: pointer; color: var(--text-2); }
+  .icon-pick label { width: 46px; height: 46px; border: 1px solid var(--border); border-radius: 6px; display: grid; place-items: center; cursor: pointer; color: var(--text-2); }
   .icon-pick label.on { border-color: var(--primary); background: var(--primary-50); color: var(--primary-700); }
   .icon-pick svg { width: 22px; height: 22px; }
   .icon-pick input { display: none; }
-  .thumb { width: 46px; height: 46px; border-radius: 12px; object-fit: cover; border: 1px solid var(--border); background: #fff; }
+  .thumb { width: 46px; height: 46px; border-radius: 6px; object-fit: cover; border: 1px solid var(--border); background: #fff; }
   @media (max-width: 1000px) { .cz-layout { grid-template-columns: 1fr; } .cz-panel { max-height: none; } .cz-preview { position: static; } .cz-preview iframe { height: 640px; } }
 </style>
 <div class="cz-layout" x-data="customizer(<?= e(json_encode($config)) ?>)" x-init="init()">
@@ -131,8 +131,8 @@ function customizer(initial) {
   return {
     c: initial, tab: 'launcher', saving: false, status: '', questionsText: (initial.suggested_questions || []).join('\n'), ready: false,
     presets: [
-      { name: 'Indigo', primary: '#5b5bd6', header: '#5b5bd6' }, { name: 'Ocean', primary: '#0ea5e9', header: '#0369a1' }, { name: 'Emerald', primary: '#10b981', header: '#047857' },
-      { name: 'Sunset', primary: '#f97316', header: '#ea580c' }, { name: 'Rose', primary: '#f43f5e', header: '#be123c' }, { name: 'Midnight', primary: '#6366f1', header: '#0f172a' }, { name: 'Graphite', primary: '#334155', header: '#1e293b' }
+      { name: 'Brand', primary: '#0052fc', header: '#141b25' }, { name: 'Ocean', primary: '#0ea5e9', header: '#0369a1' }, { name: 'Emerald', primary: '#10b981', header: '#047857' },
+      { name: 'Sunset', primary: '#f97316', header: '#ea580c' }, { name: 'Rose', primary: '#f43f5e', header: '#be123c' }, { name: 'Indigo', primary: '#5b5bd6', header: '#312e81' }, { name: 'Graphite', primary: '#334155', header: '#1e293b' }
     ],
     init() {
       var self = this;

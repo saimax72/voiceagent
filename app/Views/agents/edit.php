@@ -7,10 +7,10 @@ $extraJson = json_encode($extraLangs, JSON_UNESCAPED_UNICODE | JSON_HEX_APOS | J
 ?>
 <style>
   .var-chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
-  .var-chips button { font: inherit; font-size: 12px; font-family: var(--mono); background: var(--surface-2); border: 1px solid var(--border); border-radius: 8px; padding: 3px 8px; cursor: pointer; color: var(--text-2); }
+  .var-chips button { font: inherit; font-size: 12px; font-family: var(--mono); background: var(--surface-2); border: 1px solid var(--border); border-radius: 5px; padding: 3px 8px; cursor: pointer; color: var(--text-2); }
   .var-chips button:hover { border-color: var(--primary); color: var(--primary-700); }
   .prompt-area { font-family: var(--mono); font-size: 13px; line-height: 1.55; min-height: 260px; }
-  .lang-row { border: 1px solid var(--border); border-radius: 12px; padding: 14px; margin-bottom: 10px; }
+  .lang-row { border: 1px solid var(--border); border-radius: 10px; padding: 14px; margin-bottom: 10px; }
   .slider-row { display: grid; grid-template-columns: 110px 1fr 46px; align-items: center; gap: 10px; margin-bottom: 8px; font-size: 13px; }
 </style>
 

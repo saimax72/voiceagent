@@ -6,7 +6,7 @@
 <title>Widget preview</title>
 <style>
   html, body { margin: 0; height: 100%; font-family: Inter, system-ui, sans-serif; }
-  body { background: linear-gradient(135deg, #f8fafc 0%, #eef2ff 100%); color: #94a3b8; overflow: hidden; }
+  body { background: linear-gradient(135deg, #f8fafc 0%, #eef3ff 100%); color: #94a3b8; overflow: hidden; }
   .fake-site { padding: 28px 32px; opacity: .8; max-width: 720px; }
   .bar { height: 12px; border-radius: 6px; background: #e2e8f0; margin: 10px 0; }
   .bar.w60 { width: 60%; } .bar.w40 { width: 40%; } .bar.w80 { width: 80%; } .bar.w30 { width: 30%; }

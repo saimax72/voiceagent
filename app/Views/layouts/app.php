@@ -39,7 +39,7 @@ $nav = static function (string $href, string $label, string $icon, bool $active,
 <meta name="robots" content="noindex">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="<?= e(asset('assets/css/app.css')) ?>">
 <link rel="icon" href="<?= e(asset('assets/img/favicon.svg')) ?>" type="image/svg+xml">
 <script>window.VA = { base: <?= json_encode(base_url()) ?>, csrf: <?= json_encode(csrf_token()) ?> };</script>
@@ -50,8 +50,8 @@ $nav = static function (string $href, string $label, string $icon, bool $active,
   <div class="sidebar-overlay" :class="{ show: sidebar }" @click="sidebar = false"></div>
   <aside class="sidebar" :class="{ open: sidebar }">
     <div class="sidebar-brand">
-      <div class="brand-mark"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M12 3v18M7 8v8M17 8v8M3 11v2M21 11v2"/></svg></div>
-      <div><div class="brand-name"><?= e($app_name) ?></div><div class="brand-sub"><?= e($tenant['name'] ?? '') ?></div></div>
+      <a class="brand-logo" href="<?= e(url('/dashboard')) ?>"><img src="<?= e(asset('assets/img/logo-white.png')) ?>" alt="<?= e($app_name) ?>"></a>
+      <?php if (!empty($tenant['name'])): ?><div class="brand-sub"><?= e($tenant['name']) ?></div><?php endif; ?>
     </div>
     <nav class="sidebar-nav">
       <?= $nav('/dashboard', 'Dashboard', 'home', $path === '/dashboard') ?>

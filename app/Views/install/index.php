@@ -1,5 +1,5 @@
 <?php if ($onboarding): ?>
-<div class="card mb-6" style="background:linear-gradient(135deg,#eef2ff,#faf5ff)"><div class="card-body" style="padding:16px 22px;display:flex;align-items:center;gap:18px;flex-wrap:wrap">
+<div class="card mb-6" style="background:linear-gradient(135deg,#eef3ff,#f8f9fc)"><div class="card-body" style="padding:16px 22px;display:flex;align-items:center;gap:18px;flex-wrap:wrap">
   <div class="steps"><?php foreach ([1 => 'Website', 2 => 'AI agent', 3 => 'Design', 4 => 'Test', 5 => 'Install'] as $n => $label): ?><div class="step <?= $n < 5 ? 'done' : 'active' ?>"><span class="n"><?= $n < 5 ? '&#10003;' : $n ?></span><?= $label ?></div><?php if ($n < 5): ?><span class="step-sep"></span><?php endif; ?><?php endforeach; ?></div>
   <form method="post" action="<?= e(url('/onboarding/complete')) ?>" class="ml-auto"><?= csrf_field() ?><button class="btn btn-primary btn-sm" type="submit">Finish setup &rarr;</button></form>
 </div></div>

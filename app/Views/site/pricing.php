@@ -1,7 +1,14 @@
+<section class="page-hero">
+  <img class="hero-art" src="<?= e(asset('assets/img/banners/banner-2.webp')) ?>" srcset="<?= e(asset('assets/img/banners/banner-2-sm.webp')) ?> 960w, <?= e(asset('assets/img/banners/banner-2.webp')) ?> 1920w" sizes="100vw" alt="" aria-hidden="true">
+  <div class="container">
+    <span class="eyebrow">Pricing</span>
+    <h1>Simple plans that grow with your business</h1>
+    <p>Every plan includes website training, text and voice conversations, lead capture and analytics. Start free and upgrade when you need more.</p>
+  </div>
+</section>
+
 <section class="section">
   <div class="container">
-    <h2>Pricing</h2>
-    <p class="sub">Every plan includes website training, text and voice conversations, lead capture and analytics.</p>
     <div class="pricing-grid">
       <?php foreach ($plans as $p): ?>
         <div class="price-card <?= (int) $p['is_featured'] ? 'featured' : '' ?>">
