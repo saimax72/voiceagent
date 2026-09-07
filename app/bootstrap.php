@@ -8,7 +8,7 @@ declare(strict_types=1);
 define('APP_ROOT', dirname(__DIR__));
 define('APP_PATH', __DIR__);
 define('APP_START', microtime(true));
-define('APP_VERSION', '1.4.2');
+define('APP_VERSION', '1.5.0');
 
 if (version_compare(PHP_VERSION, '8.1.0', '<')) {
     http_response_code(500);

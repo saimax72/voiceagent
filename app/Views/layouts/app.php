@@ -9,9 +9,11 @@ $msgUsed = (int) ($usage['messages'] ?? 0);
 $pct = $msgLimit > 0 ? min(100, (int) round($msgUsed / $msgLimit * 100)) : 0;
 $openUnanswered = 0;
 $newLeads = 0;
+$upcomingBookings = 0;
 try {
     $openUnanswered = db()->count('unanswered_questions', 'tenant_id = ? AND status = ?', [(int) $tenant['id'], 'open']);
     $newLeads = db()->count('leads', 'tenant_id = ? AND status = ?', [(int) $tenant['id'], 'new']);
+    $upcomingBookings = db()->count('appointments', "tenant_id = ? AND status = 'confirmed' AND starts_at >= ?", [(int) $tenant['id'], now()]);
 } catch (\Throwable) {
 }
 $path = \App\Core\App::request()->path();
@@ -21,6 +23,7 @@ $nav = static function (string $href, string $label, string $icon, bool $active,
         'bot' => '<rect x="4" y="8" width="16" height="12" rx="3"/><path d="M12 8V4m-4 4h8M9 14h.01M15 14h.01"/>',
         'chat' => '<path d="M21 12a8 8 0 0 1-8 8H8l-5 3 1.5-4.5A8 8 0 1 1 21 12z"/>',
         'users' => '<circle cx="9" cy="8" r="3.5"/><path d="M2.5 20a6.5 6.5 0 0 1 13 0"/><circle cx="17" cy="9" r="2.5"/><path d="M15.5 14.5a5 5 0 0 1 6 5"/>',
+        'calendar' => '<rect x="3" y="5" width="18" height="16" rx="3"/><path d="M8 3v4M16 3v4M3 10h18"/>',
         'help' => '<circle cx="12" cy="12" r="9"/><path d="M9.5 9.5a2.5 2.5 0 1 1 3.5 2.3c-.7.4-1 .9-1 1.7M12 17h.01"/>',
         'chart' => '<path d="M4 20V10m6 10V4m6 16v-7m4 7H2"/>',
         'settings' => '<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/>',
@@ -58,6 +61,7 @@ $nav = static function (string $href, string $label, string $icon, bool $active,
       <?= $nav('/agents', 'AI Agents', 'bot', route_is('/agents')) ?>
       <?= $nav('/conversations', 'Conversations', 'chat', route_is('/conversations')) ?>
       <?= $nav('/leads', 'Leads', 'users', route_is('/leads'), $newLeads) ?>
+      <?= $nav('/bookings', 'Bookings', 'calendar', route_is('/bookings'), $upcomingBookings) ?>
       <?= $nav('/unanswered', 'Unanswered', 'help', route_is('/unanswered'), $openUnanswered) ?>
       <?= $nav('/analytics', 'Analytics', 'chart', route_is('/analytics')) ?>
       <div class="nav-section">Account</div>

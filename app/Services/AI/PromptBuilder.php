@@ -4,6 +4,8 @@ declare(strict_types=1);
 namespace App\Services\AI;
 
 use App\Services\Agents;
+use App\Services\Booking\BookingSettings;
+use App\Services\Booking\BookingTypes;
 
 /**
  * Builds the system prompt and tool definitions for an agent conversation.
@@ -58,6 +60,18 @@ final class PromptBuilder
                 $lead .= "\nLead instructions from the business: " . Agents::interpolate(trim((string) $agent['lead_instructions']), $vars);
             }
             $parts[] = $lead;
+        }
+
+        if ((int) ($agent['booking_enabled'] ?? 0) === 1) {
+            $bookingSettings = BookingSettings::forAgent($agent);
+            $noun = BookingTypes::noun((string) ($agent['booking_type'] ?? 'general'));
+            $booking = "Appointment booking: this business takes bookings and you can make them yourself.\n"
+                . BookingSettings::summary($agent, $bookingSettings) . "\n"
+                . "How to book: 1) find out which service the visitor wants; 2) call check_availability to get real free times, never invent or guess times; 3) offer a few options in a natural sentence; 4) collect the visitor's name"
+                . ($bookingSettings['require_email'] ? ' and email address' : '')
+                . ($bookingSettings['require_phone'] ? ' and phone number' : '')
+                . " plus the answers to the questions above, asking one thing at a time; 5) call book_appointment. Only say a {$noun} is booked after book_appointment succeeds, and give the visitor the reference it returns. If a visitor wants to move or cancel a booking, ask for the reference and call cancel_appointment.";
+            $parts[] = $booking;
         }
 
         $parts[] = 'Current date and time: ' . $vars['current_date'] . ', ' . $vars['current_time'] . ' (' . Agents::timezone($agent) . ').'
@@ -153,6 +167,78 @@ final class PromptBuilder
                 ],
             ],
         ];
+        if ((int) ($agent['booking_enabled'] ?? 0) === 1) {
+            $settings = BookingSettings::forAgent($agent);
+            $serviceNames = array_column($settings['services'], 'name');
+            $noun = BookingTypes::noun((string) ($agent['booking_type'] ?? 'general'));
+            $answerProps = [];
+            foreach ($settings['questions'] as $q) {
+                $answerProps[$q['key']] = [
+                    'type' => 'string',
+                    'description' => $q['label'] . ($q['type'] === 'choice' ? ' One of: ' . implode(', ', $q['options'] ?? []) . '.' : '') . ($q['required'] ? ' Required.' : ' Optional.'),
+                ];
+            }
+            $tools[] = [
+                'name' => 'check_availability',
+                'description' => 'Look up real free times for a ' . $noun . '. Always call this before offering any time to the visitor. Returns the next days that have free slots.',
+                'input_schema' => [
+                    'type' => 'object',
+                    'properties' => [
+                        'service' => ['type' => 'string', 'description' => 'The service the visitor wants. One of: ' . implode(', ', $serviceNames) . '.'],
+                        'from_date' => ['type' => 'string', 'description' => 'Optional first date to look from, as YYYY-MM-DD. Use it when the visitor asks about a specific day or week.'],
+                    ],
+                    'required' => ['service'],
+                    'additionalProperties' => false,
+                ],
+            ];
+            $bookProps = [
+                'service' => ['type' => 'string', 'description' => 'One of: ' . implode(', ', $serviceNames) . '.'],
+                'start' => ['type' => 'string', 'description' => 'Start time exactly as returned by check_availability, formatted YYYY-MM-DD HH:MM in the business timezone.'],
+                'name' => ['type' => 'string', 'description' => 'Full name of the person the ' . $noun . ' is for.'],
+                'email' => ['type' => 'string', 'description' => 'Email address for the confirmation.'],
+                'phone' => ['type' => 'string', 'description' => 'Phone number including country code if given.'],
+            ];
+            if ($settings['ask_notes']) {
+                $bookProps['notes'] = ['type' => 'string', 'description' => 'Anything else the visitor mentioned that the business should know.'];
+            }
+            if ($answerProps) {
+                $bookProps['answers'] = [
+                    'type' => 'object',
+                    'description' => 'Answers to the questions this business asks before a ' . $noun . '.',
+                    'properties' => $answerProps,
+                    'additionalProperties' => false,
+                ];
+            }
+            $required = ['service', 'start', 'name'];
+            if ($settings['require_email']) {
+                $required[] = 'email';
+            }
+            if ($settings['require_phone']) {
+                $required[] = 'phone';
+            }
+            $tools[] = [
+                'name' => 'book_appointment',
+                'description' => 'Book the ' . $noun . ' once the visitor has chosen a time from check_availability and given their details. Never call this with a time you have not verified.',
+                'input_schema' => [
+                    'type' => 'object',
+                    'properties' => $bookProps,
+                    'required' => $required,
+                    'additionalProperties' => false,
+                ],
+            ];
+            $tools[] = [
+                'name' => 'cancel_appointment',
+                'description' => 'Cancel an existing ' . $noun . ' using the reference the visitor was given when they booked.',
+                'input_schema' => [
+                    'type' => 'object',
+                    'properties' => [
+                        'reference' => ['type' => 'string', 'description' => 'The booking reference, for example K3F9QA.'],
+                    ],
+                    'required' => ['reference'],
+                    'additionalProperties' => false,
+                ],
+            ];
+        }
         if ((int) ($agent['lead_capture_enabled'] ?? 0) === 1) {
             $fields = Agents::leadFields($agent);
             $props = [];

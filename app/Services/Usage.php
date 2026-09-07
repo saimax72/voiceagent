@@ -89,7 +89,7 @@ final class Usage
 
     public static function recordDaily(int $tenantId, int $agentId, array $increments): void
     {
-        $allowed = ['conversations', 'messages', 'voice_messages', 'leads', 'unanswered', 'tokens_input', 'tokens_output'];
+        $allowed = ['conversations', 'messages', 'voice_messages', 'leads', 'bookings', 'unanswered', 'tokens_input', 'tokens_output'];
         $sets = [];
         $values = [];
         foreach ($increments as $col => $amount) {

@@ -78,6 +78,12 @@ final class App
     public static function basePath(): string
     {
         $script = $_SERVER['SCRIPT_NAME'] ?? '/index.php';
+        // Some servers report the requested path rather than the front controller when a URL ends in
+        // something that looks like a file, for example /booking/<token>.ics. Only a PHP entry script
+        // can define the base path, so anything else falls back to the site root.
+        if (!str_ends_with($script, '.php')) {
+            $script = '/index.php';
+        }
         $dir = str_replace('\\', '/', dirname($script));
         return rtrim($dir, '/');
     }

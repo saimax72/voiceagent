@@ -8,6 +8,7 @@ use App\Controllers\AgentController;
 use App\Controllers\AnalyticsController;
 use App\Controllers\AuthController;
 use App\Controllers\BillingController;
+use App\Controllers\BookingController;
 use App\Controllers\ConversationController;
 use App\Controllers\CronController;
 use App\Controllers\CustomizeController;
@@ -201,6 +202,15 @@ $router->group(['middleware' => ['auth', 'csrf']], static function ($r): void {
     $r->post('/leads/{id:\d+}', [LeadController::class, 'update']);
     $r->post('/leads/{id:\d+}/delete', [LeadController::class, 'destroy']);
 
+    // Bookings
+    $r->get('/bookings', [BookingController::class, 'index']);
+    $r->post('/bookings/{id:\d+}/cancel', [BookingController::class, 'cancel']);
+    $r->get('/agents/{id:\d+}/booking', [BookingController::class, 'edit']);
+    $r->post('/agents/{id:\d+}/booking', [BookingController::class, 'update']);
+    $r->post('/agents/{id:\d+}/booking/calendars', [BookingController::class, 'addCalendar']);
+    $r->post('/agents/{id:\d+}/booking/calendars/{linkId:\d+}/refresh', [BookingController::class, 'refreshCalendar']);
+    $r->post('/agents/{id:\d+}/booking/calendars/{linkId:\d+}/delete', [BookingController::class, 'deleteCalendar']);
+
     // Unanswered questions
     $r->get('/unanswered', [UnansweredController::class, 'index']);
     $r->post('/unanswered/{id:\d+}/resolve', [UnansweredController::class, 'resolve']);
@@ -280,6 +290,12 @@ $router->group(['prefix' => '/api/widget', 'middleware' => ['cors']], static fun
     $r->post('/end', [WidgetApiController::class, 'end'])->middleware('throttle:30,60');
     $r->any('/{any:.*}', static fn() => Response::json(['error' => 'Not found'], 404));
 });
+
+// Booking pages a visitor or the business owner opens directly (no login)
+$router->get('/booking/{token:[a-f0-9]{48}}', [BookingController::class, 'manage']);
+$router->post('/booking/{token:[a-f0-9]{48}}/cancel', [BookingController::class, 'cancelPublic']);
+$router->get('/booking/{token:[a-f0-9]{48}}.ics', [BookingController::class, 'appointmentIcs']);
+$router->get('/calendar/{publicId:[a-f0-9]{32}}/{token:[a-f0-9]{32}}.ics', [BookingController::class, 'feed']);
 
 // ---------------------------------------------------------------------------
 // Webhooks & cron

@@ -5,7 +5,11 @@ namespace App\Services\Chat;
 
 use App\Core\DB;
 use App\Core\Logger;
+use App\Services\Agents;
 use App\Services\AI\LLM;
+use App\Services\Booking\Availability;
+use App\Services\Booking\BookingSettings;
+use App\Services\Booking\Bookings;
 use App\Services\AI\PromptBuilder;
 use App\Services\Knowledge\Retriever;
 use App\Services\Settings;
@@ -158,6 +162,47 @@ final class ChatEngine
                         Unanswered::record($agent, $conversation, $userMessageId, $question, null);
                         $unanswered = true;
                         $output = 'Logged. Continue helping the visitor.';
+                    } elseif ($tool['name'] === 'check_availability') {
+                        $settings = BookingSettings::forAgent($agent);
+                        $service = BookingSettings::findService($settings, (string) ($tool['input']['service'] ?? ''));
+                        if (!$service) {
+                            $output = 'Unknown service. Offer one of these: ' . implode(', ', array_column($settings['services'], 'name')) . '.';
+                        } else {
+                            $days = Availability::nextAvailable($agent, $settings, (int) $service['minutes'], (string) ($tool['input']['from_date'] ?? '') ?: null);
+                            if (!$days) {
+                                $output = 'No free times were found in the booking window. Apologise and offer to take the visitor\'s details instead.';
+                            } else {
+                                $lines = ['Free times for ' . $service['name'] . ' (' . $service['minutes'] . ' min), business timezone ' . Agents::timezone($agent) . ':'];
+                                foreach ($days as $day) {
+                                    $lines[] = $day['date'] . ' (' . $day['label'] . '): ' . implode(', ', array_column($day['slots'], 'time'))
+                                        . ($day['total'] > count($day['slots']) ? ' and ' . ($day['total'] - count($day['slots'])) . ' more' : '');
+                                }
+                                $lines[] = 'Offer a couple of these, then book with the exact date and time.';
+                                $output = implode("\n", $lines);
+                            }
+                        }
+                    } elseif ($tool['name'] === 'book_appointment') {
+                        $bookingResult = Bookings::create($agent, $conversation, (array) $tool['input'], $modality === 'voice' ? 'voice' : 'chat');
+                        if ($bookingResult['ok']) {
+                            $appointment = $bookingResult['appointment'];
+                            $when = Availability::label($agent, strtotime((string) $appointment['starts_at'] . ' UTC'));
+                            $output = 'Booked. Reference ' . $appointment['reference'] . ' for ' . $appointment['service'] . ' on ' . $when
+                                . '. Tell the visitor it is confirmed, give them the reference'
+                                . (!empty($appointment['customer_email']) ? ' and say a confirmation email is on its way' : '') . '.';
+                            $emit('booking', ['reference' => $appointment['reference'], 'starts_at' => $appointment['starts_at']]);
+                        } else {
+                            $output = $bookingResult['error'];
+                        }
+                    } elseif ($tool['name'] === 'cancel_appointment') {
+                        $appointment = Bookings::findByReference((string) ($tool['input']['reference'] ?? ''), (int) $agent['id']);
+                        if (!$appointment) {
+                            $output = 'No booking was found with that reference. Ask the visitor to check it.';
+                        } elseif ($appointment['status'] === 'cancelled') {
+                            $output = 'That booking was already cancelled.';
+                        } else {
+                            Bookings::cancel($appointment, 'the visitor');
+                            $output = 'Cancelled booking ' . $appointment['reference'] . '. Confirm this to the visitor and offer to rebook.';
+                        }
                     } else {
                         $output = 'Unknown tool.';
                     }
